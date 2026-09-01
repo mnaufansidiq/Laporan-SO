@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Laporan Stock Opname — Auto Document Numbering</title>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+<script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+header{text-align:center;padding:20px;background:#1a237e;color:white;border-radius:12px;margin-bottom:20px}
+header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:white;border-radius:12px;padding:20px;border:1px solid #e0e0e0;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.panel h3{color:#1a237e;font-size:16px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #1a237e}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit}
+.form-group textarea{resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.btn{width:100%;padding:12px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+.btn:hover{opacity:0.9}
+.btn-primary{background:#1565c0;color:white}
+.btn-success{background:#2e7d32;color:white;margin-top:10px}
+.btn-secondary{background:#757575;color:white;margin-top:8px;font-size:12px;padding:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#e8eaf6;color:#1a237e;border:1px solid #c5cae9;border-radius:16px;padding:5px 12px;font-size:12px;font-weight:600;margin:0 6px 6px 0}
+.chip button{background:none;border:none;color:#c62828;cursor:pointer;font-weight:700;font-size:13px;line-height:1}
+.item-box{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:10px;font-size:12px}
+.item-box .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.item-box .badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-kritis{background:#ffcdd2;color:#c62828}
+.badge-mayor{background:#ffe0b2;color:#ef6c00}
+.badge-minor{background:#fff9c4;color:#f9a825}
+.badge-baik{background:#c8e6c9;color:#2e7d32}
+.badge-cukup{background:#fff9c4;color:#f9a825}
+.badge-kendala{background:#ffcdd2;color:#c62828}
+.preview{background:#fafafa;padding:20px;border-radius:8px;font-size:13px;line-height:1.7;max-height:80vh;overflow-y:auto}
+.empty-msg{color:#888;font-style:italic;text-align:center;padding:30px}
+.logo-preview{max-width:80px;max-height:80px;object-fit:contain;margin-top:8px;border:1px dashed #ccc;padding:4px;border-radius:4px}
+.no-logo{color:#888;font-size:11px;font-style:italic;margin-top:8px}
+.doc-number-box{background:#e3f2fd;border:1px dashed #1565c0;padding:12px;border-radius:8px;margin-bottom:14px}
+.doc-number-box .label{font-size:11px;color:#1565c0;font-weight:600;margin-bottom:4px}
+.doc-number-box .number{font-size:18px;font-weight:700;color:#1a237e;font-family:'Courier New',monospace}
+.doc-number-box .info{font-size:11px;color:#555;margin-top:4px}
+.section-block{background:#f1f3f9;padding:14px;border-radius:8px;margin-bottom:16px}
+.section-block h4{font-size:13px;color:#1a237e;margin-bottom:10px}
+.month-picker-popup{display:none;position:absolute;top:100%;left:0;z-index:50;background:white;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:240px;margin-top:4px}
+.month-picker-popup.open{display:block}
+.mp-year-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:700;color:#1a237e;font-size:14px}
+.mp-year-nav button{background:#e8eaf6;border:none;color:#1a237e;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700}
+.mp-year-nav button:hover{background:#c5cae9}
+.mp-months{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.mp-months button{padding:8px 4px;border:1px solid #ddd;background:#f8f9fa;border-radius:6px;font-size:12px;cursor:pointer;color:#333}
+.mp-months button:hover{background:#e8eaf6;border-color:#1a237e}
+.mp-months button.selected{background:#1a237e;color:white;border-color:#1a237e;font-weight:700}
+</style>
+</head>
+<body>
+<div class="container">
+<header><h1>📦 Generator Laporan Stock Opname</h1><p>Auto Document Numbering & Custom Branding</p></header>
+<div class="grid">
+<div class="panel">
+<h3>📥 Data Stock Opname</h3>
+
+<div class="doc-number-box">
+<div class="label">📋 Nomor Dokumen Otomatis</div>
+<div class="number" id="docNumberDisplay">SO-2026-001</div>
+<div class="info">Nomor otomatis bertambah setiap generate. Tersimpan di browser.</div>
+<div class="form-row-3" style="margin-top:10px">
+<div class="form-group" style="margin-bottom:0"><label style="font-size:11px">Prefix</label><input type="text" id="docPrefix" value="SO" style="font-family:monospace" onchange="updateDocNumber()"></div>
+<div class="form-group" style="margin-bottom:0"><label style="font-size:11px">Tahun</label><input type="text" id="docYear" value="2026" style="font-family:monospace" onchange="updateDocNumber()"></div>
+<div class="form-group" style="margin-bottom:0"><label style="font-size:11px">Nomor Urut</label><input type="number" id="docSequence" value="1" min="1" style="font-family:monospace" onchange="updateDocNumber()"></div>
+</div>
+<button class="btn btn-secondary" onclick="resetSequence()">🔄 Reset Urutan</button>
+<button class="btn btn-secondary" onclick="loadStoredSequence()" style="margin-top:4px">📂 Muat Nomor Tersimpan</button>
+</div>
+
+<div class="section-block">
+<h4>🖼️ Logo (tampil di tengah header)</h4>
+<div class="form-group"><label>Upload Logo (Opsional)</label><input type="file" id="logoFile" accept="image/png,image/jpeg,image/jpg" onchange="handleLogoUpload(event)"><div id="logoPreviewContainer"><div class="no-logo">Belum ada logo</div></div><button type="button" class="btn btn-secondary" id="removeLogoBtn" style="display:none" onclick="removeLogo()">🗑️ Hapus Logo</button></div>
+</div>
+
+<div class="form-row"><div class="form-group"><label>Jenis SO</label><select id="jenisSO"><option value="Monthly">Monthly</option><option value="Periodic">Periodic</option></select></div><div class="form-group"><label>Tanggal SO</label><input type="date" id="tanggalSO"></div></div>
+<div class="form-row"><div class="form-group" style="position:relative"><label>Periode SO (Bulan & Tahun)</label><input type="text" id="periodeBulanTahun" placeholder="Pilih bulan & tahun" readonly style="cursor:pointer;background:white" onclick="toggleMonthPicker(event)"><div id="monthPickerPopup" class="month-picker-popup"></div></div><div class="form-group"><label>Tanggal Laporan</label><input type="date" id="tanggalLaporan"></div></div>
+
+<div class="section-block">
+<h4>🏬 Lokasi Gudang / Depo (tampil menyamping)</h4>
+<div class="form-row"><div class="form-group" style="margin-bottom:0"><input type="text" id="lokasiInput" placeholder="Nama Gudang / Depo"></div><button type="button" class="btn btn-primary" style="width:auto;padding:9px 16px" onclick="tambahLokasi()">➕ Tambah</button></div>
+<div id="daftarLokasi" style="margin-top:10px"></div>
+</div>
+
+<div class="section-block">
+<h4>👮 Petugas Pengawas</h4>
+<div class="form-row"><div class="form-group" style="margin-bottom:8px"><label style="font-size:11px">Nama Pengawas</label><input type="text" id="pengawasNama" placeholder="Nama Pengawas"></div><div class="form-group" style="margin-bottom:8px"><label style="font-size:11px">ID Number</label><input type="text" id="pengawasId" placeholder="ID-001"></div></div>
+<button type="button" class="btn btn-secondary" onclick="tambahPengawas()">➕ Tambah Pengawas</button>
+<div id="daftarPengawas" style="margin-top:10px"></div>
+</div>
+
+<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
+<h3 style="color:#1565c0;font-size:14px;margin-bottom:12px">🔍 Hasil Pengawasan</h3>
+<div class="form-group"><label>Lokasi Gudang/Depo</label><input type="text" id="hpLokasi" placeholder="Gudang Farmasi"></div>
+<div class="form-row"><div class="form-group"><label>Tanggal</label><input type="date" id="hpTanggal"></div><div class="form-group"><label>Kondisi Lapangan</label><select id="hpKondisi"><option value="Baik">Baik</option><option value="Cukup">Cukup</option><option value="Kendala">Kendala</option></select></div></div>
+<div class="form-group"><label>Hasil Pengawasan</label><textarea id="hpHasil" rows="2" placeholder="Uraian hasil pengawasan di lokasi ini..."></textarea></div>
+<button class="btn btn-primary" id="btnTambahHP" onclick="tambahHasilPengawasan()">➕ Tambah Hasil Pengawasan</button>
+<button class="btn btn-secondary" id="btnBatalEditHP" onclick="batalEditHasilPengawasan()" style="display:none">✖️ Batal Edit</button>
+<div id="daftarHasilPengawasan" style="margin-top:14px"></div>
+
+<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
+<h3 style="color:#c62828;font-size:14px;margin-bottom:12px">⚠️ Temuan / Findings</h3>
+<p style="font-size:11px;color:#888;margin-bottom:10px;font-style:italic">Jika tidak ada temuan, cukup lewati bagian ini — laporan akan otomatis menyatakan tidak ada temuan signifikan. Tidak perlu membuat temuan rekaan.</p>
+<div class="form-row"><div class="form-group"><label>No. Temuan</label><input type="text" id="noTemuan" value="1" style="width:60px"></div><div class="form-group"><label>Tingkat Risiko</label><select id="risikoTemuan"><option value="Kritis">Kritis</option><option value="Mayor">Mayor</option><option value="Minor">Minor</option></select></div></div>
+<div class="form-group"><label>Kondisi</label><textarea id="kondisiTemuan" rows="2" placeholder="Uraian kondisi temuan..."></textarea></div>
+<button class="btn btn-primary" id="btnTambahTemuan" onclick="tambahTemuan()">➕ Tambah Temuan</button>
+<button class="btn btn-secondary" id="btnBatalEdit" onclick="batalEditTemuan()" style="display:none">✖️ Batal Edit</button>
+<div id="daftarTemuan" style="margin-top:14px"></div>
+
+<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
+<h3 style="color:#1a237e;font-size:14px;margin-bottom:12px">📝 Rekomendasi & Konklusi</h3>
+<div class="form-group"><label>Overall Rating</label><select id="overallRating" onchange="autoIsiKonklusi();renderPreview()"><option value="Memuaskan">Memuaskan</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Tidak Memuaskan">Tidak Memuaskan</option></select></div>
+<div class="form-group"><label>Rekomendasi Pengawas</label><textarea id="rekomendasi" rows="3" placeholder="Rekomendasi dari petugas pengawas..."></textarea></div>
+<div class="form-group"><label>Konklusi <button type="button" onclick="autoIsiKonklusi()" style="font-size:10px;padding:3px 8px;background:#1565c0;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🔄 Auto-isi</button></label><textarea id="konklusi" rows="3" placeholder="Klik 'Auto-isi' atau tulis manual..."></textarea></div>
+
+<button class="btn btn-success" onclick="generateDOCX()">📄 Generate & Download .docx</button>
+</div>
+
+<div class="panel">
+<h3>📋 Preview</h3>
+<div class="preview" id="previewContent"><p class="empty-msg">Preview akan muncul setelah Anda mengisi data.</p></div>
+</div>
+</div>
+</div>
+
+<script>
+let lokasiList=[],pengawasList=[],hasilPengawasanList=[],temuanList=[],temuanCounter=1,editingIndex=-1;
+let logoDataUrl=null,logoArrayBuffer=null,logoMimeType=null;
+
+/* ---------- Doc numbering ---------- */
+function getStorageKey(y){return'so_doc_sequence_'+y}
+function getNextSequence(y){let k=getStorageKey(y),s=parseInt(localStorage.getItem(k))||0;return s+1}
+function saveSequence(y,s){localStorage.setItem(getStorageKey(y),s.toString())}
+function getStoredSequence(y){return parseInt(localStorage.getItem(getStorageKey(y)))||0}
+function fmtDoc(p,y,s){return p+'-'+y+'-'+String(s).padStart(3,'0')}
+
+function updateDocNumber(){
+  let p=document.getElementById('docPrefix').value||'SO',y=document.getElementById('docYear').value||'2026',s=parseInt(document.getElementById('docSequence').value)||1;
+  document.getElementById('docNumberDisplay').textContent=fmtDoc(p,y,s);
+  renderPreview();
+}
+function resetSequence(){
+  let y=document.getElementById('docYear').value||'2026';
+  if(confirm('Yakin reset urutan dokumen untuk tahun '+y+'?')){
+    localStorage.removeItem(getStorageKey(y));
+    document.getElementById('docSequence').value=1;
+    updateDocNumber();
+    alert('Urutan untuk tahun '+y+' direset ke 001.');
+  }
+}
+function loadStoredSequence(){
+  let y=document.getElementById('docYear').value||'2026',st=getStoredSequence(y);
+  if(st>0){
+    document.getElementById('docSequence').value=st;
+    updateDocNumber();
+    alert('Tersimpan tahun '+y+': '+st+' laporan. Berikutnya: '+fmtDoc(document.getElementById('docPrefix').value||'SO',y,st+1));
+  }else{
+    alert('Belum ada laporan tahun '+y+'. Mulai dari 001.');
+    document.getElementById('docSequence').value=1;
+    updateDocNumber();
+  }
+}
+function incSaveSeq(){
+  let p=document.getElementById('docPrefix').value||'SO',y=document.getElementById('docYear').value||'2026',ns=getNextSequence(y);
+  saveSequence(y,ns);
+  document.getElementById('docSequence').value=ns;
+  updateDocNumber();
+  return fmtDoc(p,y,ns);
+}
+
+/* ---------- Logo ---------- */
+function handleLogoUpload(event){
+  let file=event.target.files[0];
+  if(!file)return;
+  if(file.size>3*1024*1024){alert('Ukuran logo maksimal 3MB.');event.target.value='';return}
+  logoMimeType=file.type;
+  let readerUrl=new FileReader();
+  readerUrl.onload=function(e){
+    logoDataUrl=e.target.result;
+    let c=document.getElementById('logoPreviewContainer');
+    c.innerHTML='<img src="'+logoDataUrl+'" class="logo-preview" alt="Logo">';
+    document.getElementById('removeLogoBtn').style.display='block';
+    renderPreview();
+  };
+  readerUrl.readAsDataURL(file);
+  let readerBuf=new FileReader();
+  readerBuf.onload=function(e){logoArrayBuffer=e.target.result};
+  readerBuf.readAsArrayBuffer(file);
+}
+function removeLogo(){
+  logoDataUrl=null;logoArrayBuffer=null;logoMimeType=null;
+  document.getElementById('logoFile').value='';
+  document.getElementById('logoPreviewContainer').innerHTML='<div class="no-logo">Belum ada logo</div>';
+  document.getElementById('removeLogoBtn').style.display='none';
+  renderPreview();
+}
+
+/* ---------- Month/Year Picker ---------- */
+const MONTH_NAMES=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+let mpViewYear=new Date().getFullYear(),mpSelectedMonth=null,mpSelectedYear=null;
+
+function toggleMonthPicker(e){
+  e.stopPropagation();
+  let popup=document.getElementById('monthPickerPopup');
+  if(popup.classList.contains('open')){closeMonthPicker();return}
+  if(mpSelectedYear)mpViewYear=mpSelectedYear;
+  renderMonthPicker();
+  popup.classList.add('open');
+  document.addEventListener('click',outsideMonthPickerClick);
+}
+function closeMonthPicker(){
+  document.getElementById('monthPickerPopup').classList.remove('open');
+  document.removeEventListener('click',outsideMonthPickerClick);
+}
+function outsideMonthPickerClick(e){
+  let popup=document.getElementById('monthPickerPopup');
+  let input=document.getElementById('periodeBulanTahun');
+  if(!popup.contains(e.target)&&e.target!==input)closeMonthPicker();
+}
+function mpChangeYear(delta){
+  mpViewYear+=delta;
+  renderMonthPicker();
+}
+function mpPickMonth(idx){
+  mpSelectedMonth=idx;
+  mpSelectedYear=mpViewYear;
+  document.getElementById('periodeBulanTahun').value=MONTH_NAMES[idx]+' '+mpViewYear;
+  closeMonthPicker();
+  renderPreview();
+}
+function renderMonthPicker(){
+  let popup=document.getElementById('monthPickerPopup');
+  let h='<div class="mp-year-nav"><button type="button" onclick="mpChangeYear(-1)">‹</button><span>'+mpViewYear+'</span><button type="button" onclick="mpChangeYear(1)">›</button></div><div class="mp-months">';
+  MONTH_NAMES.forEach((m,i)=>{
+    let sel=(mpSelectedMonth===i&&mpSelectedYear===mpViewYear)?' selected':'';
+    h+='<button type="button" class="'+sel.trim()+'" onclick="mpPickMonth('+i+')">'+m.substring(0,3)+'</button>';
+  });
+  h+='</div>';
+  popup.innerHTML=h;
+}
+function getPeriodeBulanValue(){
+  return mpSelectedMonth!==null?MONTH_NAMES[mpSelectedMonth]+' '+mpSelectedYear:(document.getElementById('periodeBulanTahun').value||'-');
+}
+
+/* ---------- Lokasi Gudang/Depo ---------- */
+function tambahLokasi(){
+  let v=document.getElementById('lokasiInput').value.trim();
+  if(!v){alert('Nama lokasi wajib diisi!');return}
+  lokasiList.push(v);
+  document.getElementById('lokasiInput').value='';
+  renderDaftarLokasi();renderPreview();
+}
+function hapusLokasi(i){lokasiList.splice(i,1);renderDaftarLokasi();renderPreview()}
+function renderDaftarLokasi(){
+  let c=document.getElementById('daftarLokasi');
+  if(lokasiList.length===0){c.innerHTML='';return}
+  let h='';
+  lokasiList.forEach((l,i)=>{h+='<span class="chip">'+l+' <button onclick="hapusLokasi('+i+')">✕</button></span>'});
+  c.innerHTML=h;
+}
+
+/* ---------- Petugas Pengawas ---------- */
+function tambahPengawas(){
+  let nama=document.getElementById('pengawasNama').value.trim(),id=document.getElementById('pengawasId').value.trim();
+  if(!nama){alert('Nama pengawas wajib diisi!');return}
+  pengawasList.push({nama,id});
+  document.getElementById('pengawasNama').value='';
+  document.getElementById('pengawasId').value='';
+  renderDaftarPengawas();renderPreview();
+}
+function hapusPengawas(i){pengawasList.splice(i,1);renderDaftarPengawas();renderPreview()}
+function renderDaftarPengawas(){
+  let c=document.getElementById('daftarPengawas');
+  if(pengawasList.length===0){c.innerHTML='';return}
+  let h='';
+  pengawasList.forEach((a,i)=>{
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;background:white;border:1px solid #ddd;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:12px"><span><strong>'+a.nama+'</strong>'+(a.id?' — '+a.id:'')+'</span><button onclick="hapusPengawas('+i+')" style="padding:3px 8px;font-size:10px;background:#c62828;color:white;border:none;border-radius:4px;cursor:pointer">Hapus</button></div>';
+  });
+  c.innerHTML=h;
+}
+
+/* ---------- Hasil Pengawasan ---------- */
+let editingIndexHP=-1;
+function tambahHasilPengawasan(){
+  let lokasi=document.getElementById('hpLokasi').value.trim(),tanggal=document.getElementById('hpTanggal').value,kondisi=document.getElementById('hpKondisi').value,hasil=document.getElementById('hpHasil').value.trim();
+  if(!lokasi||!hasil){alert('Lokasi dan Hasil Pengawasan wajib diisi!');return}
+  let data={lokasi,tanggal,kondisi,hasil};
+  if(editingIndexHP>=0){
+    hasilPengawasanList[editingIndexHP]=data;
+    batalEditHasilPengawasan(false);
+    renderDaftarHasilPengawasan();renderPreview();
+    return;
+  }
+  hasilPengawasanList.push(data);
+  document.getElementById('hpLokasi').value='';
+  document.getElementById('hpTanggal').value='';
+  document.getElementById('hpHasil').value='';
+  document.getElementById('hpKondisi').value='Baik';
+  renderDaftarHasilPengawasan();renderPreview();
+}
+function editHasilPengawasan(i){
+  let p=hasilPengawasanList[i];
+  editingIndexHP=i;
+  document.getElementById('hpLokasi').value=p.lokasi;
+  document.getElementById('hpTanggal').value=p.tanggal;
+  document.getElementById('hpKondisi').value=p.kondisi;
+  document.getElementById('hpHasil').value=p.hasil;
+  document.getElementById('btnTambahHP').textContent='💾 Update Hasil Pengawasan';
+  document.getElementById('btnBatalEditHP').style.display='block';
+  document.getElementById('hpLokasi').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function batalEditHasilPengawasan(resetForm=true){
+  editingIndexHP=-1;
+  document.getElementById('btnTambahHP').textContent='➕ Tambah Hasil Pengawasan';
+  document.getElementById('btnBatalEditHP').style.display='none';
+  if(resetForm){
+    document.getElementById('hpLokasi').value='';
+    document.getElementById('hpTanggal').value='';
+    document.getElementById('hpHasil').value='';
+    document.getElementById('hpKondisi').value='Baik';
+  }
+}
+function hapusHasilPengawasan(i){
+  if(i===editingIndexHP)batalEditHasilPengawasan();
+  hasilPengawasanList.splice(i,1);
+  renderDaftarHasilPengawasan();renderPreview();
+}
+function kondisiBadgeClass(k){return k==='Baik'?'badge-baik':(k==='Cukup'?'badge-cukup':'badge-kendala')}
+function renderDaftarHasilPengawasan(){
+  let c=document.getElementById('daftarHasilPengawasan');
+  if(hasilPengawasanList.length===0){c.innerHTML='';return}
+  let h='<p style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">Daftar Hasil Pengawasan:</p>';
+  hasilPengawasanList.forEach((p,i)=>{
+    h+='<div class="item-box"><div class="head"><span><strong>'+p.lokasi+'</strong>'+(p.tanggal?' — '+fmtTanggal(p.tanggal):'')+'</span><span class="badge '+kondisiBadgeClass(p.kondisi)+'">'+p.kondisi+'</span></div><div style="color:#666">'+p.hasil+'</div><div style="margin-top:8px;display:flex;gap:6px"><button onclick="editHasilPengawasan('+i+')" style="padding:4px 10px;font-size:11px;background:#1565c0;color:white;border:none;border-radius:4px;cursor:pointer">✏️ Edit</button><button onclick="hapusHasilPengawasan('+i+')" style="padding:4px 10px;font-size:11px;background:#c62828;color:white;border:none;border-radius:4px;cursor:pointer">🗑️ Hapus</button></div></div>';
+  });
+  c.innerHTML=h;
+}
+
+/* ---------- Temuan ---------- */
+function tambahTemuan(){
+  let no=document.getElementById('noTemuan').value||temuanCounter,risiko=document.getElementById('risikoTemuan').value,kondisi=document.getElementById('kondisiTemuan').value.trim();
+  if(!kondisi){alert('Kondisi temuan wajib diisi!');return}
+  let data={no,risiko,kondisi};
+  if(editingIndex>=0){
+    temuanList[editingIndex]=data;
+    batalEditTemuan(false);
+    renderDaftarTemuan();renderPreview();
+    return;
+  }
+  temuanList.push(data);
+  temuanCounter++;
+  document.getElementById('kondisiTemuan').value='';
+  document.getElementById('noTemuan').value=temuanCounter;
+  renderDaftarTemuan();renderPreview();
+}
+function editTemuan(i){
+  let t=temuanList[i];
+  editingIndex=i;
+  document.getElementById('noTemuan').value=t.no;
+  document.getElementById('risikoTemuan').value=t.risiko;
+  document.getElementById('kondisiTemuan').value=t.kondisi;
+  document.getElementById('btnTambahTemuan').textContent='💾 Update Temuan';
+  document.getElementById('btnBatalEdit').style.display='block';
+  document.getElementById('noTemuan').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function batalEditTemuan(resetForm=true){
+  editingIndex=-1;
+  document.getElementById('btnTambahTemuan').textContent='➕ Tambah Temuan';
+  document.getElementById('btnBatalEdit').style.display='none';
+  if(resetForm){
+    document.getElementById('kondisiTemuan').value='';
+    document.getElementById('noTemuan').value=temuanCounter;
+  }
+}
+function hapusTemuan(i){
+  if(i===editingIndex)batalEditTemuan();
+  temuanList.splice(i,1);
+  renderDaftarTemuan();renderPreview();
+}
+function renderDaftarTemuan(){
+  let c=document.getElementById('daftarTemuan');
+  if(temuanList.length===0){c.innerHTML='';return}
+  let h='<p style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">Daftar Temuan:</p>';
+  temuanList.forEach((t,i)=>{
+    let bc=t.risiko==='Kritis'?'badge-kritis':t.risiko==='Mayor'?'badge-mayor':'badge-minor';
+    h+='<div class="item-box"><div class="head"><span><strong>Temuan #'+t.no+'</strong></span><span class="badge '+bc+'">'+t.risiko+'</span></div><div style="color:#666">'+t.kondisi.substring(0,80)+(t.kondisi.length>80?'...':'')+'</div><div style="margin-top:8px;display:flex;gap:6px"><button onclick="editTemuan('+i+')" style="padding:4px 10px;font-size:11px;background:#1565c0;color:white;border:none;border-radius:4px;cursor:pointer">✏️ Edit</button><button onclick="hapusTemuan('+i+')" style="padding:4px 10px;font-size:11px;background:#c62828;color:white;border:none;border-radius:4px;cursor:pointer">🗑️ Hapus</button></div></div>';
+  });
+  c.innerHTML=h;
+}
+
+/* ---------- Helpers ---------- */
+function fmtTanggal(iso){
+  if(!iso)return'-';
+  let bulan=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  let parts=iso.split('-');
+  if(parts.length!==3)return iso;
+  return parseInt(parts[2])+' '+bulan[parseInt(parts[1])-1]+' '+parts[0];
+}
+function fmtBulanTahun(iso){
+  if(!iso)return'-';
+  let bulan=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  let parts=iso.split('-');
+  if(parts.length!==2)return iso;
+  return bulan[parseInt(parts[1])-1]+' '+parts[0];
+}
+function ratingColor(rating){
+  if(rating==='Tidak Memuaskan')return'#c62828';
+  if(rating==='Perlu Perbaikan')return'#f57f17';
+  return'#2e7d32';
+}
+function getMainFinding(){
+  return temuanList.find(t=>t.risiko==='Kritis')||temuanList.find(t=>t.risiko==='Mayor')||temuanList.find(t=>t.risiko==='Minor')||null;
+}
+function getExecSummary(d){
+  let k=temuanList.filter(t=>t.risiko==='Kritis').length,m=temuanList.filter(t=>t.risiko==='Mayor').length,mn=temuanList.filter(t=>t.risiko==='Minor').length;
+  let rating=d.overallRating;
+  let color=ratingColor(rating);
+  let main=getMainFinding();
+  let lokasiText=lokasiList.length>0?lokasiList.join(', '):'-';
+  let p1='Pada periode '+d.periodeBulan+', telah dilaksanakan Stock Opname (SO) pada '+lokasiText+' dengan pengawasan dari Tim Pengawas SO. Kegiatan pengawasan dilakukan untuk memastikan pelaksanaan SO berjalan dengan lancar, tertib, dan sesuai dengan prosedur yang telah ditetapkan.';
+  let p2='';
+  if(rating==='Tidak Memuaskan'){
+    p2='Berdasarkan hasil pengawasan, ditemukan permasalahan yang cukup signifikan dalam pelaksanaan SO'+(main?', termasuk temuan utama berupa '+main.kondisi:'')+', sehingga pelaksanaan SO secara keseluruhan dinilai Tidak Memuaskan dan memerlukan tindakan perbaikan segera.';
+  }else if(rating==='Perlu Perbaikan'){
+    p2='Berdasarkan hasil pengawasan, pelaksanaan SO secara umum cukup baik, namun masih terdapat beberapa catatan yang perlu ditindaklanjuti'+(main?', antara lain '+main.kondisi:'')+', sehingga dinilai Perlu Perbaikan.';
+  }else{
+    p2='Berdasarkan hasil pengawasan, '+(main?'terdapat sedikit catatan berupa '+main.kondisi+', namun secara umum':'tidak ditemukan permasalahan yang signifikan selama pelaksanaan SO, sehingga secara keseluruhan')+' pelaksanaan SO dinilai Memuaskan.';
+  }
+  return{p1,p2,rating,color,k,m,mn};
+}
+function getAutoKonklusi(){
+  let rating=document.getElementById('overallRating').value;
+  let k=temuanList.filter(t=>t.risiko==='Kritis').length,m=temuanList.filter(t=>t.risiko==='Mayor').length,mn=temuanList.filter(t=>t.risiko==='Minor').length;
+  if(rating==='Tidak Memuaskan')return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini dinilai Tidak Memuaskan sehubungan dengan ditemukannya '+(k>0?k+' temuan berisiko Kritis':'temuan yang signifikan')+(m>0||mn>0?' serta catatan tambahan lainnya':'')+' yang memerlukan tindak lanjut segera dari pihak terkait.';
+  if(rating==='Perlu Perbaikan')return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini dinilai Perlu Perbaikan, dengan '+(m>0?m+' temuan berisiko Mayor':'beberapa catatan')+(mn>0?' serta '+mn+' temuan Minor':'')+' yang perlu ditindaklanjuti oleh unit terkait.';
+  if(mn>0)return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini dinilai Memuaskan, dengan '+mn+' catatan Minor sebagai bahan perbaikan berkelanjutan.';
+  return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini berjalan Memuaskan dan tidak ditemukan permasalahan signifikan.';
+}
+function autoIsiKonklusi(){document.getElementById('konklusi').value=getAutoKonklusi();renderPreview()}
+
+function getData(){
+  let p=document.getElementById('docPrefix').value||'SO',y=document.getElementById('docYear').value||'2026',s=parseInt(document.getElementById('docSequence').value)||1;
+  return{
+    jenisSO:document.getElementById('jenisSO').value,
+    tanggalSO:document.getElementById('tanggalSO').value,
+    periodeBulan:getPeriodeBulanValue(),
+    tanggalLaporan:document.getElementById('tanggalLaporan').value,
+    overallRating:document.getElementById('overallRating').value,
+    rekomendasi:document.getElementById('rekomendasi').value||'-',
+    konklusi:document.getElementById('konklusi').value||getAutoKonklusi(),
+    docPrefix:p,docYear:y,docSequence:s,docNumber:fmtDoc(p,y,s)
+  };
+}
+
+const PERNYATAAN_TEXT='Menyatakan bahwa proses pengawasan dilakukan secara independen, objektif, dan tanpa adanya konflik kepentingan dengan pihak mana pun. Seluruh informasi dan hasil pemeriksaan yang saya catat adalah benar, sesuai kondisi sebenarnya di lapangan, dan dapat dipertanggungjawabkan. Apabila di kemudian hari ditemukan ketidaksesuaian, saya bersedia memberikan klarifikasi sesuai ketentuan yang berlaku.';
+
+/* ---------- Preview ---------- */
+function renderPreview(){
+  let d=getData();
+  if(lokasiList.length===0&&mpSelectedMonth===null&&temuanList.length===0&&hasilPengawasanList.length===0){
+    document.getElementById('previewContent').innerHTML='<p class="empty-msg">Preview akan muncul setelah Anda mengisi data.</p>';return;
+  }
+  let summary=getExecSummary(d);
+  let logo=logoDataUrl?'<img src="'+logoDataUrl+'" style="max-width:80px;max-height:80px;object-fit:contain" alt="Logo">':'<div style="width:60px;height:60px;background:#e8eaf6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#1a237e;font-size:22px;margin:0 auto">🏢</div>';
+
+  let lokasiHtml=lokasiList.length>0
+    ?'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px"><tr>'+lokasiList.map(l=>'<td style="border:1px solid #ccc;padding:8px;text-align:center;background:#f8f9fa">'+l+'</td>').join('')+'</tr></table>'
+    :'<p class="empty-msg">Belum ada lokasi.</p>';
+
+  let pengawasHtml=pengawasList.length>0
+    ?'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px"><tr><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">No</th><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">Nama</th><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">ID Number</th></tr>'
+      +pengawasList.map((p,i)=>'<tr><td style="border:1px solid #ccc;padding:8px">'+(i+1)+'</td><td style="border:1px solid #ccc;padding:8px">'+p.nama+'</td><td style="border:1px solid #ccc;padding:8px">'+(p.id||'-')+'</td></tr>').join('')+'</table>'
+    :'<p class="empty-msg">Belum ada petugas pengawas.</p>';
+
+  let hpHtml=hasilPengawasanList.length>0
+    ?'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px"><tr><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">Lokasi</th><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">Tanggal</th><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">Kondisi</th><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">Hasil Pengawasan</th></tr>'
+      +hasilPengawasanList.map(p=>'<tr><td style="border:1px solid #ccc;padding:8px">'+p.lokasi+'</td><td style="border:1px solid #ccc;padding:8px">'+fmtTanggal(p.tanggal)+'</td><td style="border:1px solid #ccc;padding:8px">'+p.kondisi+'</td><td style="border:1px solid #ccc;padding:8px">'+p.hasil+'</td></tr>').join('')+'</table>'
+    :'<p class="empty-msg">Belum ada hasil pengawasan.</p>';
+
+  let temuanHtml='';
+  if(temuanList.length===0){
+    temuanHtml='<p style="margin:0;color:#555">Tidak ditemukan temuan yang signifikan selama pelaksanaan pengawasan Stock Opname.</p>';
+  }else{
+    temuanList.forEach(t=>{
+      let c=t.risiko==='Kritis'?'#c62828':t.risiko==='Mayor'?'#ef6c00':'#f9a825';
+      temuanHtml+='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">'
+        +'<tr><th colspan="2" style="background:'+c+';color:white;padding:8px 10px;text-align:left;border:1px solid '+c+'">Temuan #'+t.no+' — Risiko: '+t.risiko+'</th></tr>'
+        +'<tr><td style="width:20%;background:#f1f3f9;font-weight:bold;padding:8px 10px;border:1px solid #ccc;vertical-align:top">Kondisi</td><td style="padding:8px 10px;border:1px solid #ccc">'+t.kondisi+'</td></tr>'
+        +'</table>';
+    });
+  }
+
+  let pengawasNamesHtml=pengawasList.length>0
+    ?'<table style="width:100%;border-collapse:collapse;font-size:12px;margin:10px 0 20px 0"><tr><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">No</th><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">Nama</th><th style="background:#1a237e;color:white;padding:8px;border:1px solid #1a237e">ID Number</th></tr>'
+      +pengawasList.map((p,i)=>'<tr><td style="border:1px solid #ccc;padding:8px">'+(i+1)+'</td><td style="border:1px solid #ccc;padding:8px">'+p.nama+'</td><td style="border:1px solid #ccc;padding:8px">'+(p.id||'-')+'</td></tr>').join('')+'</table>'
+    :'';
+
+  let ttdHtml=pengawasList.length>0
+    ?'<div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:16px">'+pengawasList.map(p=>'<div style="text-align:center;min-width:170px;margin-bottom:16px"><br><br>_________________________<br><strong>'+p.nama+'</strong>'+(p.id?' ('+p.id+')':'')+'<br><span style="font-size:11px;color:#666">Petugas Pengawas</span></div>').join('')+'</div>'
+    :'<p class="empty-msg">Belum ada petugas pengawas untuk tanda tangan.</p>';
+
+  let html='<div style="font-family:Segoe UI,sans-serif">'
+    +'<div style="text-align:center;margin-bottom:16px">'+logo+'</div>'
+    +'<div style="text-align:center;margin:8px 0 24px 0">'
+    +'<div style="font-size:17px;font-weight:700;color:#333">Laporan Stock Opname</div>'
+    +'<div style="font-size:14px;font-weight:600;color:#333;margin-top:8px">Periode: '+d.periodeBulan+'</div>'
+    +'</div>'
+    +'<hr style="border:none;border-top:1px solid #333;margin-bottom:24px">'
+    +'<table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:16px">'
+    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;width:180px;font-weight:bold;color:#1a237e">No. Dokumen</td><td style="padding:6px 0">: '+d.docNumber+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Jenis SO</td><td style="padding:6px 0">: '+d.jenisSO+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Tanggal SO</td><td style="padding:6px 0">: '+fmtTanggal(d.tanggalSO)+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Tanggal Laporan</td><td style="padding:6px 0">: '+fmtTanggal(d.tanggalLaporan)+'</td></tr>'
+    +'</table>'
+    +'<p style="margin:0 0 6px 0;font-weight:bold;color:#1a237e">Lokasi Gudang / Depo</p>'+lokasiHtml
+    +'<p style="margin:0 0 6px 0;font-weight:bold;color:#1a237e">Petugas Pengawas</p>'+pengawasHtml
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">1. EXECUTIVE SUMMARY</div>'
+    +'<p style="margin:0 0 8px 0">'+summary.p1+'</p><p style="margin:0 0 8px 0">'+summary.p2+'</p>'
+    +'<p style="margin:0"><strong>Overall Rating:</strong> <span style="background:#fff9c4;color:'+summary.color+';padding:2px 8px;font-weight:bold">'+summary.rating+'</span></p>'
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">2. HASIL PENGAWASAN</div>'+hpHtml
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">3. TEMUAN / FINDINGS</div>'+temuanHtml
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">4. REKOMENDASI PENGAWAS</div><p style="margin:0">'+d.rekomendasi+'</p>'
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">5. KONKLUSI</div><p style="margin:0">'+d.konklusi+'</p>'
+    +'<p style="margin:16px 0 0 0;font-weight:bold;color:#1a237e">Daftar Petugas Pengawas</p>'+pengawasNamesHtml
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">PERNYATAAN</div><p style="margin:0;font-style:italic">'+PERNYATAAN_TEXT+'</p>'
+    +ttdHtml
+    +'</div>';
+  document.getElementById('previewContent').innerHTML=html;
+}
+
+/* ---------- DOCX Generation ---------- */
+async function generateDOCX(){
+ try{
+  let d=getData();
+  let finalDocNumber=incSaveSeq();d.docNumber=finalDocNumber;
+  let docxLib=(typeof docx!=='undefined')?docx:(window.docx||window.Docx||window.DOCX);
+  if(!docxLib){throw new Error('Library docx gagal dimuat dari CDN. Coba refresh halaman (Ctrl+Shift+R) atau cek koneksi internet.')}
+  let {Document,Packer,Paragraph,TextRun,Table,TableCell,TableRow,WidthType,AlignmentType,convertInchesToTwip,HeadingLevel,ImageRun}=docxLib;
+  let fontSize=22;
+  let summary=getExecSummary(d);
+  function cc(text,opts={}){return new TableCell({children:[new Paragraph({children:[new TextRun({text:String(text),bold:opts.bold,size:opts.size||fontSize,color:opts.color})],alignment:opts.align})],width:{size:opts.width||20,type:WidthType.PERCENTAGE},shading:opts.fill?{fill:opts.fill}:undefined})}
+
+  let children=[];
+
+  // Header: logo centered only, no confidentiality label
+  if(logoArrayBuffer){
+    let imgType='png';
+    if(logoMimeType){
+      if(logoMimeType.includes('jpeg')||logoMimeType.includes('jpg'))imgType='jpg';
+      else if(logoMimeType.includes('gif'))imgType='gif';
+      else if(logoMimeType.includes('bmp'))imgType='bmp';
+      else imgType='png';
+    }
+    children.push(new Paragraph({children:[new ImageRun({type:imgType,data:logoArrayBuffer,transformation:{width:80,height:80}})],alignment:AlignmentType.CENTER,spacing:{after:200}}));
+  }
+  children.push(new Paragraph({children:[new TextRun({text:'Laporan Stock Opname',bold:true,size:28,color:'333333'})],alignment:AlignmentType.CENTER,spacing:{after:150}}));
+  children.push(new Paragraph({children:[new TextRun({text:'Periode: '+d.periodeBulan,bold:true,size:24,color:'333333'})],alignment:AlignmentType.CENTER,spacing:{after:300}}));
+  children.push(new Paragraph({border:{bottom:{color:'333333',space:1,style:'single',size:6}},spacing:{after:300}}));
+
+  // Info table
+  children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[
+    new TableRow({children:[cc('No. Dokumen',{bold:true,width:30}),cc(d.docNumber,{width:70})]}),
+    new TableRow({children:[cc('Jenis SO',{bold:true,width:30}),cc(d.jenisSO,{width:70})]}),
+    new TableRow({children:[cc('Tanggal SO',{bold:true,width:30}),cc(fmtTanggal(d.tanggalSO),{width:70})]}),
+    new TableRow({children:[cc('Tanggal Laporan',{bold:true,width:30}),cc(fmtTanggal(d.tanggalLaporan),{width:70})]})
+  ]}));
+  children.push(new Paragraph({spacing:{before:200}}));
+
+  // Lokasi Gudang/Depo — horizontal
+  children.push(new Paragraph({children:[new TextRun({text:'Lokasi Gudang / Depo',bold:true,color:'1A237E',size:fontSize})],spacing:{before:200,after:100}}));
+  if(lokasiList.length>0){
+    let w=Math.floor(100/lokasiList.length);
+    children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[new TableRow({children:lokasiList.map(l=>cc(l,{width:w,align:AlignmentType.CENTER}))})]}));
+  }else{
+    children.push(new Paragraph({text:'-',size:fontSize}));
+  }
+
+  // Petugas Pengawas
+  children.push(new Paragraph({children:[new TextRun({text:'Petugas Pengawas',bold:true,color:'1A237E',size:fontSize})],spacing:{before:300,after:100}}));
+  if(pengawasList.length>0){
+    let pr=[new TableRow({children:[cc('No',{bold:true,color:'FFFFFF',fill:'1A237E',width:10}),cc('Nama',{bold:true,color:'FFFFFF',fill:'1A237E',width:50}),cc('ID Number',{bold:true,color:'FFFFFF',fill:'1A237E',width:40})]})];
+    pengawasList.forEach((p,i)=>{pr.push(new TableRow({children:[cc(i+1,{width:10}),cc(p.nama,{width:50}),cc(p.id||'-',{width:40})]}))});
+    children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:pr}));
+  }else{
+    children.push(new Paragraph({text:'-',size:fontSize}));
+  }
+
+  // 1. Executive Summary
+  children.push(new Paragraph({text:'1. EXECUTIVE SUMMARY',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
+  children.push(new Paragraph({text:summary.p1,size:fontSize,spacing:{after:100}}));
+  children.push(new Paragraph({text:summary.p2,size:fontSize,spacing:{after:100}}));
+  children.push(new Paragraph({children:[new TextRun({text:'Overall Rating: ',bold:true,size:fontSize}),new TextRun({text:summary.rating,bold:true,size:fontSize,color:summary.color.replace('#','')})]}));
+
+  // 2. Hasil Pengawasan
+  children.push(new Paragraph({text:'2. HASIL PENGAWASAN',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
+  if(hasilPengawasanList.length>0){
+    let hr=[new TableRow({children:[cc('Lokasi',{bold:true,color:'FFFFFF',fill:'1A237E',width:25}),cc('Tanggal',{bold:true,color:'FFFFFF',fill:'1A237E',width:15}),cc('Kondisi',{bold:true,color:'FFFFFF',fill:'1A237E',width:15}),cc('Hasil Pengawasan',{bold:true,color:'FFFFFF',fill:'1A237E',width:45})]})];
+    hasilPengawasanList.forEach(p=>{hr.push(new TableRow({children:[cc(p.lokasi,{width:25}),cc(fmtTanggal(p.tanggal),{width:15}),cc(p.kondisi,{width:15}),cc(p.hasil,{width:45})]}))});
+    children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:hr}));
+  }else{
+    children.push(new Paragraph({text:'Belum ada data hasil pengawasan.',size:fontSize,italics:true}));
+  }
+
+  // 3. Temuan
+  children.push(new Paragraph({text:'3. TEMUAN / FINDINGS',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
+  if(temuanList.length===0){
+    children.push(new Paragraph({text:'Tidak ditemukan temuan yang signifikan selama pelaksanaan pengawasan Stock Opname.',size:fontSize}));
+  }else{
+    temuanList.forEach(t=>{
+      let rc=t.risiko==='Kritis'?'C62828':t.risiko==='Mayor'?'EF6C00':'F9A825';
+      let rows=[
+        new TableRow({children:[new TableCell({children:[new Paragraph({children:[new TextRun({text:'Temuan #'+t.no+' — Risiko: '+t.risiko,bold:true,size:24,color:'FFFFFF'})]})],columnSpan:2,shading:{fill:rc}})]}),
+        new TableRow({children:[cc('Kondisi',{bold:true,width:20,fill:'F1F3F9'}),cc(t.kondisi,{width:80})]})
+      ];
+      children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows}));
+      children.push(new Paragraph({spacing:{after:200}}));
+    });
+  }
+
+  // 4. Rekomendasi
+  children.push(new Paragraph({text:'4. REKOMENDASI PENGAWAS',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
+  children.push(new Paragraph({text:d.rekomendasi,size:fontSize}));
+
+  // 5. Konklusi
+  children.push(new Paragraph({text:'5. KONKLUSI',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
+  children.push(new Paragraph({text:d.konklusi,size:fontSize}));
+
+  // Daftar Petugas Pengawas (again, below konklusi)
+  children.push(new Paragraph({children:[new TextRun({text:'Daftar Petugas Pengawas',bold:true,color:'1A237E',size:fontSize})],spacing:{before:300,after:100}}));
+  if(pengawasList.length>0){
+    let pr2=[new TableRow({children:[cc('No',{bold:true,color:'FFFFFF',fill:'1A237E',width:10}),cc('Nama',{bold:true,color:'FFFFFF',fill:'1A237E',width:50}),cc('ID Number',{bold:true,color:'FFFFFF',fill:'1A237E',width:40})]})];
+    pengawasList.forEach((p,i)=>{pr2.push(new TableRow({children:[cc(i+1,{width:10}),cc(p.nama,{width:50}),cc(p.id||'-',{width:40})]}))});
+    children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:pr2}));
+  }else{
+    children.push(new Paragraph({text:'-',size:fontSize}));
+  }
+
+  // Pernyataan
+  children.push(new Paragraph({text:'PERNYATAAN',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
+  children.push(new Paragraph({children:[new TextRun({text:PERNYATAAN_TEXT,italics:true,size:fontSize})],spacing:{after:200}}));
+
+  // Signatures per pengawas
+  if(pengawasList.length>0){
+    let sigCells=pengawasList.map(p=>{
+      let ch=[
+        new Paragraph({spacing:{before:600}}),
+        new Paragraph({children:[new TextRun({text:'_________________________',size:fontSize})]}),
+        new Paragraph({children:[new TextRun({text:p.nama+(p.id?' ('+p.id+')':''),bold:true,size:fontSize})]}),
+        new Paragraph({children:[new TextRun({text:'Petugas Pengawas',size:fontSize})]})
+      ];
+      return new TableCell({children:ch,width:{size:Math.floor(100/pengawasList.length),type:WidthType.PERCENTAGE}});
+    });
+    // chunk into rows of max 3 to avoid overly narrow columns
+    let rows=[];
+    for(let i=0;i<sigCells.length;i+=3){
+      let chunk=sigCells.slice(i,i+3);
+      rows.push(new TableRow({children:chunk}));
+    }
+    children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:{style:'none'},bottom:{style:'none'},left:{style:'none'},right:{style:'none'},insideHorizontal:{style:'none'},insideVertical:{style:'none'}},rows}));
+  }
+
+  let doc=new Document({sections:[{properties:{page:{margin:{top:convertInchesToTwip(1),bottom:convertInchesToTwip(1),left:convertInchesToTwip(1),right:convertInchesToTwip(1)}}},children:children}]});
+  let blob=await Packer.toBlob(doc);
+  let filename=d.docNumber+'_Laporan_SO_'+(d.periodeBulan||'').replace(/\s+/g,'_').substring(0,25)+'.docx';
+  saveAs(blob,filename);
+  alert('✅ Laporan berhasil di-generate!\n\nNomor Dokumen: '+d.docNumber+'\n\nNomor berikutnya: '+fmtDoc(d.docPrefix,d.docYear,d.docSequence+1));
+ }catch(err){
+  console.error(err);
+  alert('❌ Gagal generate dokumen!\n\nError: '+err.message+'\n\nCoba cek kembali data yang diisi, atau hubungi developer dengan menyertakan pesan error ini.');
+ }
+}
+
+['jenisSO','tanggalSO','periodeBulanTahun','tanggalLaporan','overallRating','rekomendasi','konklusi','docPrefix','docYear','docSequence'].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener('input',renderPreview)});
+window.addEventListener('DOMContentLoaded',()=>{loadStoredSequence()});
+</script>
+</body>
+</html>
