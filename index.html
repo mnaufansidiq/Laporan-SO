@@ -122,14 +122,8 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <h3 style="color:#1a237e;font-size:14px;margin-bottom:12px">📝 Rekomendasi & Konklusi</h3>
 <div class="form-group"><label>Overall Rating</label><select id="overallRating" onchange="renderPreview()"><option value="Memuaskan">Memuaskan</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Tidak Memuaskan">Tidak Memuaskan</option></select></div>
 <div class="form-group"><label>Rekomendasi Pengawas</label><textarea id="rekomendasi" rows="3" placeholder="Rekomendasi dari petugas pengawas..."></textarea></div>
-<div class="section-block" style="background:#e8f0fe">
-<h4>🌐 Cloudflare Worker (proxy Gemini)</h4>
-<div class="form-group" style="margin-bottom:8px"><label style="font-size:11px">URL Worker</label><input type="text" id="workerUrl" placeholder="https://gemini-proxy-worker.akun-anda.workers.dev"></div>
-<div style="display:flex;gap:8px"><button type="button" class="btn btn-secondary" style="margin-top:0" onclick="saveWorkerUrl()">💾 Simpan URL</button><button type="button" class="btn btn-secondary" style="margin-top:0;background:#c62828" onclick="clearWorkerUrl()">🗑️ Hapus URL</button></div>
-<div style="font-size:11px;color:#555;margin-top:8px">API key Gemini disimpan aman di Cloudflare Worker (secret di server), bukan di browser ini. Deploy Worker-nya lalu tempel URL-nya di sini.</div>
-</div>
 
-<div class="form-group"><label>Konklusi <button type="button" id="btnAiKonklusi" onclick="generateKonklusiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI (Gemini)</button></label><textarea id="konklusi" rows="8" placeholder="Isi URL Worker di atas, lalu klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiKonklusiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun konklusi dengan Gemini...</div></div>
+<div class="form-group"><label>Konklusi <button type="button" id="btnAiKonklusi" onclick="generateKonklusiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI (Gemini)</button></label><textarea id="konklusi" rows="8" placeholder="Klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiKonklusiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun konklusi dengan Gemini...</div></div>
 
 <button class="btn btn-success" onclick="generateDOCX()">📄 Generate & Download .docx</button>
 </div>
@@ -144,6 +138,9 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <script>
 let lokasiList=[],pengawasList=[],hasilPengawasanList=[],temuanList=[],temuanCounter=1,editingIndex=-1;
 let logoDataUrl=null,logoArrayBuffer=null,logoMimeType=null;
+
+/* ==== KONFIGURASI WORKER (edit URL di bawah ini sesuai Worker Anda) ==== */
+const HARDCODED_WORKER_URL='https://so-proxy.mnaufansidiq.workers.dev/';
 
 /* ---------- Doc numbering ---------- */
 function getStorageKey(y){return'so_doc_sequence_'+y}
@@ -513,7 +510,7 @@ function getAutoKonklusi(){
 }
 function autoIsiKonklusi(){document.getElementById('konklusi').value=getAutoKonklusi();renderPreview()}
 
-/* ---------- Konklusi via AI (Claude) ---------- */
+/* ---------- Konklusi via AI (Gemini via Cloudflare Worker) ---------- */
 function buildKonklusiPrompt(){
   let periode=getPeriodeBulanValue();
   let rating=document.getElementById('overallRating').value;
@@ -554,30 +551,12 @@ function buildKonklusiPrompt(){
     +'Jangan mengarang data yang tidak ada di bawah ini.\n\n'+dataText;
 }
 
-/* ---------- Cloudflare Worker endpoint management ---------- */
-const WORKER_URL_STORAGE='so_worker_url';
-function saveWorkerUrl(){
-  let url=document.getElementById('workerUrl').value.trim();
-  if(!url){alert('Isi dulu URL Worker-nya sebelum disimpan.');return}
-  localStorage.setItem(WORKER_URL_STORAGE,url);
-  alert('✅ URL Worker tersimpan di browser ini.');
-}
-function clearWorkerUrl(){
-  localStorage.removeItem(WORKER_URL_STORAGE);
-  document.getElementById('workerUrl').value='';
-  alert('URL Worker dihapus dari browser ini.');
-}
-function loadWorkerUrl(){
-  let url=localStorage.getItem(WORKER_URL_STORAGE);
-  if(url)document.getElementById('workerUrl').value=url;
-}
-
 async function generateKonklusiAI(){
   let btn=document.getElementById('btnAiKonklusi');
   let status=document.getElementById('aiKonklusiStatus');
-  let workerUrl=document.getElementById('workerUrl').value.trim();
-  if(!workerUrl){
-    alert('Isi dulu URL Cloudflare Worker di bagian "🌐 Cloudflare Worker (proxy Gemini)" di atas.\n\nDeploy Worker-nya dulu (lihat file gemini-proxy-worker.js), baru tempel URL-nya di sini.');
+  let workerUrl=HARDCODED_WORKER_URL;
+  if(!workerUrl||workerUrl.indexOf('GANTI-DENGAN-URL-WORKER-ANDA')!==-1){
+    alert('URL Worker belum dikonfigurasi.\n\nDeveloper: isi konstanta HARDCODED_WORKER_URL di dalam kode dengan URL Cloudflare Worker Anda (lihat file gemini-proxy-worker.js untuk cara deploy-nya).');
     return;
   }
   if(lokasiList.length===0&&hasilPengawasanList.length===0&&temuanList.length===0){
@@ -604,7 +583,7 @@ async function generateKonklusiAI(){
     renderPreview();
   }catch(err){
     console.error(err);
-    alert('❌ Gagal generate konklusi lewat Worker.\n\nError: '+err.message+'\n\nCek kembali URL Worker, apakah sudah di-deploy, secret GEMINI_API_KEY sudah diset, koneksi internet, dan kuota free tier Anda. Anda tetap bisa tulis konklusi secara manual.');
+    alert('❌ Gagal generate konklusi lewat Worker.\n\nError: '+err.message+'\n\nCek kembali apakah Worker sudah di-deploy, secret GEMINI_API_KEY sudah diset, koneksi internet, dan kuota free tier Anda. Anda tetap bisa tulis konklusi secara manual.');
   }finally{
     btn.disabled=false;btn.textContent='🤖 Generate dengan AI (Gemini)';
     status.style.display='none';
@@ -878,7 +857,7 @@ async function generateDOCX(){
 }
 
 ['jenisSO','tanggalSO','periodeBulanTahun','tanggalLaporan','overallRating','rekomendasi','konklusi','docPrefix','docYear','docSequence'].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener('input',renderPreview)});
-window.addEventListener('DOMContentLoaded',()=>{loadStoredSequence();loadWorkerUrl()});
+window.addEventListener('DOMContentLoaded',()=>{loadStoredSequence();});
 </script>
 </body>
 </html>
