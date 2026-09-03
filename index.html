@@ -601,7 +601,7 @@ async function callAIWithTimeout(workerUrl,promptText,timeoutMs=20000){
       }
       const text=(data&&data.text?data.text:'').trim();
       if(!text)throw new Error('AI tidak memberikan hasil apa pun.');
-      return {text,provider:(data&&data.provider)||'?',modelUsed:(data&&data.modelUsed)||'?'};
+      return {text,provider:(data&&data.provider)||'?',modelUsed:(data&&data.modelUsed)||'?',elapsedMs:(data&&data.elapsedMs)};
     }catch(err){
       clearTimeout(timer);
       if(err.name==='AbortError'){
@@ -637,11 +637,11 @@ async function generateKonklusiAI(){
   renderPreview();
   try{
     let prompt=buildKonklusiPrompt();
-    let result=await callAIWithTimeout(workerUrl,prompt,20000);
+    let result=await callAIWithTimeout(workerUrl,prompt,22000);
 
     document.getElementById('konklusi').value=result.text;
     let strukturOk=validasiStrukturKonklusi(result.text);
-    let ket='ℹ️ Dihasilkan oleh: '+result.provider+' ('+result.modelUsed+')';
+    let ket='ℹ️ Dihasilkan oleh: '+result.provider+' ('+result.modelUsed+')'+(result.elapsedMs?' — '+(result.elapsedMs/1000).toFixed(1)+' detik':'');
     if(result.provider==='workers-ai')ket+=' — model fallback (Gemini sedang tidak tersedia).';
     if(!strukturOk)ket+=' ⚠️ Hasil sepertinya kurang lengkap/terpotong — cek & edit manual, atau klik tombol AI sekali lagi.';
     providerInfo.textContent=ket;
