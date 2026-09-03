@@ -66,22 +66,9 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <div class="panel">
 <h3>📥 Data Stock Opname</h3>
 
-<div class="doc-number-box">
-<div class="label">📋 Nomor Dokumen Otomatis</div>
-<div class="number" id="docNumberDisplay">SO-2026-001</div>
-<div class="info">Nomor otomatis bertambah setiap generate. Tersimpan di browser.</div>
-<div class="form-row-3" style="margin-top:10px">
-<div class="form-group" style="margin-bottom:0"><label style="font-size:11px">Prefix</label><input type="text" id="docPrefix" value="SO" style="font-family:monospace" onchange="updateDocNumber()"></div>
-<div class="form-group" style="margin-bottom:0"><label style="font-size:11px">Tahun</label><input type="text" id="docYear" value="2026" style="font-family:monospace" onchange="updateDocNumber()"></div>
-<div class="form-group" style="margin-bottom:0"><label style="font-size:11px">Nomor Urut</label><input type="number" id="docSequence" value="1" min="1" style="font-family:monospace" onchange="updateDocNumber()"></div>
-</div>
-<button class="btn btn-secondary" onclick="resetSequence()">🔄 Reset Urutan</button>
-<button class="btn btn-secondary" onclick="loadStoredSequence()" style="margin-top:4px">📂 Muat Nomor Tersimpan</button>
-</div>
-
 <div class="section-block">
 <h4>🖼️ Logo (tampil di tengah header)</h4>
-<div class="form-group"><label>Upload Logo (Opsional)</label><input type="file" id="logoFile" accept="image/png,image/jpeg,image/jpg" onchange="handleLogoUpload(event)"><div id="logoPreviewContainer"><div class="no-logo">Belum ada logo</div></div><button type="button" class="btn btn-secondary" id="removeLogoBtn" style="display:none" onclick="removeLogo()">🗑️ Hapus Logo</button></div>
+<div class="form-group"><label>Ganti Logo (opsional — default sudah logo RS JIH)</label><input type="file" id="logoFile" accept="image/png,image/jpeg,image/jpg" onchange="handleLogoUpload(event)"><div id="logoPreviewContainer"><img src="" class="logo-preview" alt="Logo"></div><button type="button" class="btn btn-secondary" id="removeLogoBtn" onclick="resetLogoToDefault()">↩️ Kembali ke Logo Default</button></div>
 </div>
 
 <div class="form-row"><div class="form-group"><label>Jenis SO</label><select id="jenisSO"><option value="Monthly">Monthly</option><option value="Periodic">Periodic</option></select></div><div class="form-group"><label>Tanggal SO</label><input type="date" id="tanggalSO"></div></div>
@@ -138,54 +125,27 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 
 <script>
 let lokasiList=[],pengawasList=[],hasilPengawasanList=[],temuanList=[],temuanCounter=1,editingIndex=-1;
-let logoDataUrl=null,logoArrayBuffer=null,logoMimeType=null;
 let konklusiSedangDiproses=false;
+
+/* ---------- Logo default (RS JIH) — tertanam di kode, tidak perlu upload ulang tiap buka halaman ---------- */
+const DEFAULT_LOGO_MIME='image/png';
+const DEFAULT_LOGO_BASE64='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';
+const DEFAULT_LOGO_DATA_URL='data:'+DEFAULT_LOGO_MIME+';base64,'+DEFAULT_LOGO_BASE64;
+function base64ToArrayBuffer(base64){
+  let binary=atob(base64),len=binary.length,bytes=new Uint8Array(len);
+  for(let i=0;i<len;i++){bytes[i]=binary.charCodeAt(i)}
+  return bytes.buffer;
+}
+// Mulai dengan logo default RS JIH sudah terisi (bukan null) — tidak perlu upload manual tiap buka halaman.
+let logoDataUrl=DEFAULT_LOGO_DATA_URL,logoArrayBuffer=base64ToArrayBuffer(DEFAULT_LOGO_BASE64),logoMimeType=DEFAULT_LOGO_MIME;
 
 /* ==== KONFIGURASI WORKER (edit URL di bawah ini sesuai Worker Anda) ==== */
 const HARDCODED_WORKER_URL='https://so-proxy.mnaufansidiq.workers.dev/';
 
-/* ---------- Doc numbering ---------- */
-function getStorageKey(y){return'so_doc_sequence_'+y}
-function getNextSequence(y){let k=getStorageKey(y),s=parseInt(localStorage.getItem(k))||0;return s+1}
-function saveSequence(y,s){localStorage.setItem(getStorageKey(y),s.toString())}
-function getStoredSequence(y){return parseInt(localStorage.getItem(getStorageKey(y)))||0}
-function fmtDoc(p,y,s){return p+'-'+y+'-'+String(s).padStart(3,'0')}
-
-function updateDocNumber(){
-  let p=document.getElementById('docPrefix').value||'SO',y=document.getElementById('docYear').value||'2026',s=parseInt(document.getElementById('docSequence').value)||1;
-  document.getElementById('docNumberDisplay').textContent=fmtDoc(p,y,s);
-  renderPreview();
-}
-function resetSequence(){
-  let y=document.getElementById('docYear').value||'2026';
-  if(confirm('Yakin reset urutan dokumen untuk tahun '+y+'?')){
-    localStorage.removeItem(getStorageKey(y));
-    document.getElementById('docSequence').value=1;
-    updateDocNumber();
-    alert('Urutan untuk tahun '+y+' direset ke 001.');
-  }
-}
-function loadStoredSequence(){
-  let y=document.getElementById('docYear').value||'2026',st=getStoredSequence(y);
-  if(st>0){
-    document.getElementById('docSequence').value=st;
-    updateDocNumber();
-    alert('Tersimpan tahun '+y+': '+st+' laporan. Berikutnya: '+fmtDoc(document.getElementById('docPrefix').value||'SO',y,st+1));
-  }else{
-    alert('Belum ada laporan tahun '+y+'. Mulai dari 001.');
-    document.getElementById('docSequence').value=1;
-    updateDocNumber();
-  }
-}
-function incSaveSeq(){
-  let p=document.getElementById('docPrefix').value||'SO',y=document.getElementById('docYear').value||'2026',ns=getNextSequence(y);
-  saveSequence(y,ns);
-  document.getElementById('docSequence').value=ns;
-  updateDocNumber();
-  return fmtDoc(p,y,ns);
-}
-
 /* ---------- Logo ---------- */
+function renderLogoPreview(){
+  document.getElementById('logoPreviewContainer').innerHTML='<img src="'+logoDataUrl+'" class="logo-preview" alt="Logo">';
+}
 function handleLogoUpload(event){
   let file=event.target.files[0];
   if(!file)return;
@@ -194,9 +154,7 @@ function handleLogoUpload(event){
   let readerUrl=new FileReader();
   readerUrl.onload=function(e){
     logoDataUrl=e.target.result;
-    let c=document.getElementById('logoPreviewContainer');
-    c.innerHTML='<img src="'+logoDataUrl+'" class="logo-preview" alt="Logo">';
-    document.getElementById('removeLogoBtn').style.display='block';
+    renderLogoPreview();
     renderPreview();
   };
   readerUrl.readAsDataURL(file);
@@ -204,11 +162,14 @@ function handleLogoUpload(event){
   readerBuf.onload=function(e){logoArrayBuffer=e.target.result};
   readerBuf.readAsArrayBuffer(file);
 }
-function removeLogo(){
-  logoDataUrl=null;logoArrayBuffer=null;logoMimeType=null;
+// Dulu "Hapus Logo" (mengosongkan). Sekarang logo selalu ada (default RS JIH), jadi
+// tombol ini mengembalikan ke logo default — dipakai kalau sempat ganti logo lain.
+function resetLogoToDefault(){
+  logoDataUrl=DEFAULT_LOGO_DATA_URL;
+  logoArrayBuffer=base64ToArrayBuffer(DEFAULT_LOGO_BASE64);
+  logoMimeType=DEFAULT_LOGO_MIME;
   document.getElementById('logoFile').value='';
-  document.getElementById('logoPreviewContainer').innerHTML='<div class="no-logo">Belum ada logo</div>';
-  document.getElementById('removeLogoBtn').style.display='none';
+  renderLogoPreview();
   renderPreview();
 }
 
@@ -659,7 +620,6 @@ async function generateKonklusiAI(){
 }
 
 function getData(){
-  let p=document.getElementById('docPrefix').value||'SO',y=document.getElementById('docYear').value||'2026',s=parseInt(document.getElementById('docSequence').value)||1;
   return{
     jenisSO:document.getElementById('jenisSO').value,
     tanggalSO:document.getElementById('tanggalSO').value,
@@ -669,8 +629,7 @@ function getData(){
     rekomendasi:document.getElementById('rekomendasi').value||'-',
   konklusi:(konklusiSedangDiproses&&!document.getElementById('konklusi').value)
     ?'⏳ AI sedang menyusun konklusi, mohon tunggu sebentar... (teks ini hanya tampilan sementara, belum tersimpan)'
-    :(document.getElementById('konklusi').value||getAutoKonklusi()),
-    docPrefix:p,docYear:y,docSequence:s,docNumber:fmtDoc(p,y,s)
+    :(document.getElementById('konklusi').value||getAutoKonklusi())
   };
 }
 
@@ -744,13 +703,12 @@ function renderPreview(){
   let html='<div style="font-family:Segoe UI,sans-serif">'
     +'<div style="text-align:center;margin-bottom:16px">'+logo+'</div>'
     +'<div style="text-align:center;margin:8px 0 24px 0">'
-    +'<div style="font-size:17px;font-weight:700;color:#333">Laporan Stock Opname</div>'
+    +'<div style="font-size:17px;font-weight:700;color:#333">Laporan Pengawas Stock Opname</div>'
     +'<div style="font-size:14px;font-weight:600;color:#333;margin-top:8px">Periode: '+d.periodeBulan+'</div>'
     +'</div>'
     +'<hr style="border:none;border-top:1px solid #333;margin-bottom:24px">'
     +'<table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:16px">'
-    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;width:180px;font-weight:bold;color:#1a237e">No. Dokumen</td><td style="padding:6px 0">: '+d.docNumber+'</td></tr>'
-    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Jenis SO</td><td style="padding:6px 0">: '+d.jenisSO+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;width:180px;font-weight:bold;color:#1a237e">Jenis SO</td><td style="padding:6px 0">: '+d.jenisSO+'</td></tr>'
     +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Tanggal SO</td><td style="padding:6px 0">: '+fmtTanggal(d.tanggalSO)+'</td></tr>'
     +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Tanggal Laporan</td><td style="padding:6px 0">: '+fmtTanggal(d.tanggalLaporan)+'</td></tr>'
     +'</table>'
@@ -778,7 +736,6 @@ async function generateDOCX(){
     return;
   }
   let d=getData();
-  let finalDocNumber=incSaveSeq();d.docNumber=finalDocNumber;
   let docxLib=(typeof docx!=='undefined')?docx:(window.docx||window.Docx||window.DOCX);
   if(!docxLib){throw new Error('Library docx gagal dimuat dari CDN. Coba refresh halaman (Ctrl+Shift+R) atau cek koneksi internet.')}
   let {Document,Packer,Paragraph,TextRun,Table,TableCell,TableRow,WidthType,AlignmentType,convertInchesToTwip,HeadingLevel,ImageRun}=docxLib;
@@ -799,13 +756,12 @@ async function generateDOCX(){
     }
     children.push(new Paragraph({children:[new ImageRun({type:imgType,data:logoArrayBuffer,transformation:{width:80,height:80}})],alignment:AlignmentType.CENTER,spacing:{after:200}}));
   }
-  children.push(new Paragraph({children:[new TextRun({text:'Laporan Stock Opname',bold:true,size:28,color:'333333'})],alignment:AlignmentType.CENTER,spacing:{after:150}}));
+  children.push(new Paragraph({children:[new TextRun({text:'Laporan Pengawas Stock Opname',bold:true,size:28,color:'333333'})],alignment:AlignmentType.CENTER,spacing:{after:150}}));
   children.push(new Paragraph({children:[new TextRun({text:'Periode: '+d.periodeBulan,bold:true,size:24,color:'333333'})],alignment:AlignmentType.CENTER,spacing:{after:300}}));
   children.push(new Paragraph({border:{bottom:{color:'333333',space:1,style:'single',size:6}},spacing:{after:300}}));
 
   // Info table
   children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[
-    new TableRow({children:[cc('No. Dokumen',{bold:true,width:30}),cc(d.docNumber,{width:70})]}),
     new TableRow({children:[cc('Jenis SO',{bold:true,width:30}),cc(d.jenisSO,{width:70})]}),
     new TableRow({children:[cc('Tanggal SO',{bold:true,width:30}),cc(fmtTanggal(d.tanggalSO),{width:70})]}),
     new TableRow({children:[cc('Tanggal Laporan',{bold:true,width:30}),cc(fmtTanggal(d.tanggalLaporan),{width:70})]})
@@ -921,17 +877,18 @@ async function generateDOCX(){
 
   let doc=new Document({sections:[{properties:{page:{margin:{top:convertInchesToTwip(1),bottom:convertInchesToTwip(1),left:convertInchesToTwip(1),right:convertInchesToTwip(1)}}},children:children}]});
   let blob=await Packer.toBlob(doc);
-  let filename=d.docNumber+'_Laporan_SO_'+(d.periodeBulan||'').replace(/\s+/g,'_').substring(0,25)+'.docx';
+  let periodeSlug=(d.periodeBulan||'Tanpa_Periode').replace(/\s+/g,'_');
+  let filename='Laporan_Pengawas_SO_'+periodeSlug+'.docx';
   saveAs(blob,filename);
-  alert('✅ Laporan berhasil di-generate!\n\nNomor Dokumen: '+d.docNumber+'\n\nNomor berikutnya: '+fmtDoc(d.docPrefix,d.docYear,d.docSequence+1));
+  alert('✅ Laporan berhasil di-generate!\n\nFile: '+filename);
  }catch(err){
   console.error(err);
   alert('❌ Gagal generate dokumen!\n\nError: '+err.message+'\n\nCoba cek kembali data yang diisi, atau hubungi developer dengan menyertakan pesan error ini.');
  }
 }
 
-['jenisSO','tanggalSO','periodeBulanTahun','tanggalLaporan','overallRating','rekomendasi','konklusi','docPrefix','docYear','docSequence'].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener('input',renderPreview)});
-window.addEventListener('DOMContentLoaded',()=>{loadStoredSequence();});
+['jenisSO','tanggalSO','periodeBulanTahun','tanggalLaporan','overallRating','rekomendasi','konklusi'].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener('input',renderPreview)});
+window.addEventListener('DOMContentLoaded',()=>{renderLogoPreview();});
 </script>
 </body>
 </html>
