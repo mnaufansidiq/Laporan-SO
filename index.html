@@ -386,23 +386,27 @@ function ratingColor(rating){
   if(rating==='Perlu Perbaikan')return'#f57f17';
   return'#2e7d32';
 }
-function getMainFinding(){
-  return temuanList.find(t=>t.risiko==='Kritis')||temuanList.find(t=>t.risiko==='Mayor')||temuanList.find(t=>t.risiko==='Minor')||null;
+function getMainFindings(){
+  if(temuanList.some(t=>t.risiko==='Kritis'))return temuanList.filter(t=>t.risiko==='Kritis');
+  if(temuanList.some(t=>t.risiko==='Mayor'))return temuanList.filter(t=>t.risiko==='Mayor');
+  if(temuanList.some(t=>t.risiko==='Minor'))return temuanList.filter(t=>t.risiko==='Minor');
+  return[];
 }
 function getExecSummary(d){
   let k=temuanList.filter(t=>t.risiko==='Kritis').length,m=temuanList.filter(t=>t.risiko==='Mayor').length,mn=temuanList.filter(t=>t.risiko==='Minor').length;
   let rating=d.overallRating;
   let color=ratingColor(rating);
-  let main=getMainFinding();
+  let main=getMainFindings();
+  let mainText=main.length?joinWithDan(main.map(t=>t.kondisi)):null;
   let lokasiText=lokasiList.length>0?lokasiList.join(', '):'-';
   let p1='Pada periode '+d.periodeBulan+', telah dilaksanakan Stock Opname (SO) pada '+lokasiText+' dengan pengawasan dari Tim Pengawas SO. Kegiatan pengawasan dilakukan untuk memastikan pelaksanaan SO berjalan dengan lancar, tertib, dan sesuai dengan prosedur yang telah ditetapkan.';
   let p2='';
   if(rating==='Tidak Memuaskan'){
-    p2='Berdasarkan hasil pengawasan, ditemukan permasalahan yang cukup signifikan dalam pelaksanaan SO'+(main?', termasuk temuan utama berupa '+main.kondisi:'')+', sehingga pelaksanaan SO secara keseluruhan dinilai Tidak Memuaskan dan memerlukan tindakan perbaikan segera.';
+    p2='Berdasarkan hasil pengawasan, ditemukan permasalahan yang cukup signifikan dalam pelaksanaan SO'+(mainText?', termasuk temuan utama berupa '+mainText:'')+', sehingga pelaksanaan SO secara keseluruhan dinilai Tidak Memuaskan dan memerlukan tindakan perbaikan segera.';
   }else if(rating==='Perlu Perbaikan'){
-    p2='Berdasarkan hasil pengawasan, pelaksanaan SO secara umum cukup baik, namun masih terdapat beberapa catatan yang perlu ditindaklanjuti'+(main?', antara lain '+main.kondisi:'')+', sehingga dinilai Perlu Perbaikan.';
+    p2='Berdasarkan hasil pengawasan, pelaksanaan SO secara umum cukup baik, namun masih terdapat beberapa catatan yang perlu ditindaklanjuti'+(mainText?', antara lain '+mainText:'')+', sehingga dinilai Perlu Perbaikan.';
   }else{
-    p2='Berdasarkan hasil pengawasan, '+(main?'terdapat sedikit catatan berupa '+main.kondisi+', namun secara umum':'tidak ditemukan permasalahan yang signifikan selama pelaksanaan SO, sehingga secara keseluruhan')+' pelaksanaan SO dinilai Memuaskan.';
+    p2='Berdasarkan hasil pengawasan, '+(mainText?'terdapat sedikit catatan berupa '+mainText+', namun secara umum':'tidak ditemukan permasalahan yang signifikan selama pelaksanaan SO, sehingga secara keseluruhan')+' pelaksanaan SO dinilai Memuaskan.';
   }
   return{p1,p2,rating,color,k,m,mn};
 }
@@ -452,9 +456,10 @@ function getAutoKonklusi(){
     if(k>0)temuanParts.push(k+' temuan berisiko Kritis');
     if(m>0)temuanParts.push(m+' temuan berisiko Mayor');
     if(mn>0)temuanParts.push(mn+' temuan berisiko Minor');
-    let main=getMainFinding();
+    let main=getMainFindings();
+    let mainText=main.length?joinWithDan(main.map(t=>t.kondisi)):null;
     p2='Selama proses pengawasan, teridentifikasi sebanyak '+totalTemuan+' temuan, terdiri dari '+joinWithDan(temuanParts)+'.'
-      +(main?' Temuan yang paling perlu mendapat perhatian adalah '+main.kondisi+'.':'')
+      +(mainText?' Temuan yang paling perlu mendapat perhatian adalah '+mainText+'.':'')
       +' Seluruh temuan tersebut memerlukan tindak lanjut dan perbaikan sesuai dengan tingkat risikonya masing-masing agar tidak berulang pada periode SO berikutnya.';
   }
 
