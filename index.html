@@ -514,12 +514,13 @@ function buildKonklusiPrompt(){
   let level=(document.getElementById('levelElaborasiSO')||{}).value||'standar';
 
   return 'Anda adalah asisten penyusun laporan audit/pengawasan internal berbahasa Indonesia yang formal. '
-    +'Berdasarkan data Laporan Stock Opname berikut, tulis bagian "KONKLUSI" dengan format PERSIS seperti ini:\n'
+    +'Berdasarkan data Laporan Stock Opname berikut, tulis ISI bagian konklusi laporan dengan format PERSIS seperti ini:\n'
+    +'0) JANGAN menuliskan kata "KONKLUSI" atau judul/header apa pun di awal jawaban — langsung mulai dengan paragraf pembuka. Judul bagian ini sudah otomatis ditambahkan oleh sistem, jadi kalau ditulis ulang akan dobel.\n'
     +'1) Satu paragraf pembuka berisi 3-4 kalimat yang merangkum GARIS BESAR seluruh hasil di atas secara mengalir dan natural (cakup: periode, cakupan lokasi/pengawasan, kondisi umum di lapangan, dan gambaran temuan serta rating akhir). WAJIB sebutkan hal-hal SPESIFIK dari data (nama lokasi, angka jumlah temuan per tingkat risiko, dsb) — DILARANG menulis kalimat template kosong seperti "kegiatan telah berjalan dengan baik" tanpa merujuk data konkret di atas.\n'
     +'2) Setelah paragraf pembuka, beri SATU baris kosong, lalu tulis poin-poin (masing-masing diawali tanda "- ") yang merinci hal-hal penting, misalnya: kondisi tiap lokasi/hasil pengawasan yang menonjol (sebut nama lokasinya), rincian temuan per tingkat risiko beserta implikasinya, status rekomendasi, dan simpulan rating akhir beserta arahan tindak lanjut. '
     +elaborasiInstruksiSO(level)+' Buat poin secukupnya sesuai jumlah data yang tersedia (jangan mengada-ada jika datanya sedikit, minimal tetap buat 2 poin bila data memungkinkan).\n'
     +'3) WAJIB: paragraf pembuka DAN poin-poin harus SAMA-SAMA ada dalam jawaban akhir — jangan berhenti menulis hanya setelah paragraf pembuka. Jangan memotong kalimat di tengah; pastikan jawaban selesai secara utuh.\n'
-    +'Gunakan gaya bahasa laporan resmi instansi/perusahaan Indonesia. JANGAN gunakan markdown (tanpa **, tanpa heading, tanpa penomoran 1/2/3) — hanya teks paragraf biasa untuk pembuka dan baris "- " untuk poin-poin. '
+    +'Gunakan gaya bahasa laporan resmi instansi/perusahaan Indonesia. JANGAN gunakan markdown (tanpa **, tanpa heading, tanpa penomoran 1/2/3, tanpa kata "KONKLUSI" di awal) — hanya teks paragraf biasa untuk pembuka dan baris "- " untuk poin-poin. '
     +'Jangan mengarang data yang tidak ada di bawah ini.\n\n'+dataText;
 }
 
@@ -583,6 +584,13 @@ async function callAIWithTimeout(workerUrl,promptText,timeoutMs=20000){
   throw lastErr;
 }
 
+function stripKonklusiHeader(text){
+  if(!text)return text;
+  // Buang baris pertama kalau isinya cuma kata "KONKLUSI" (dengan/tanpa nomor, titik dua, markdown #/**),
+  // jaga-jaga kalau AI tetap menuliskannya meski sudah dilarang di prompt.
+  return text.replace(/^\s*[#*\s]*\d*\.?\s*konklusi\s*[:.]?\s*[#*]*\s*\n+/i,'').trim();
+}
+
 async function generateKonklusiAI(){
   let btn=document.getElementById('btnAiKonklusi');
   let status=document.getElementById('aiKonklusiStatus');
@@ -604,6 +612,7 @@ async function generateKonklusiAI(){
   try{
     let prompt=buildKonklusiPrompt();
     let result=await callAIWithTimeout(workerUrl,prompt,22000);
+    result.text=stripKonklusiHeader(result.text);
 
     document.getElementById('konklusi').value=result.text;
     let strukturOk=validasiStrukturKonklusi(result.text);
