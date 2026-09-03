@@ -123,7 +123,8 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <div class="form-group"><label>Overall Rating</label><select id="overallRating" onchange="renderPreview()"><option value="Memuaskan">Memuaskan</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Tidak Memuaskan">Tidak Memuaskan</option></select></div>
 <div class="form-group"><label>Rekomendasi Pengawas</label><textarea id="rekomendasi" rows="3" placeholder="Rekomendasi dari petugas pengawas..."></textarea></div>
 
-<div class="form-group"><label>Konklusi <button type="button" id="btnAiKonklusi" onclick="generateKonklusiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI (Gemini)</button></label><textarea id="konklusi" rows="8" placeholder="Klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiKonklusiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun konklusi dengan Gemini...</div></div>
+<div class="form-group"><label>Level Elaborasi Konklusi AI</label><select id="levelElaborasiSO"><option value="ringkas">Ringkas — kalimat singkat, langsung ke inti</option><option value="standar" selected>Standar — kalimat lengkap dengan konteks secukupnya</option><option value="detail">Detail — naratif, implikasi & tindak lanjut dijelaskan</option></select></div>
+<div class="form-group"><label>Konklusi <button type="button" id="btnAiKonklusi" onclick="generateKonklusiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI</button></label><textarea id="konklusi" rows="8" placeholder="Klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiKonklusiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun konklusi...</div><div id="aiKonklusiProvider" style="font-size:11px;color:#888;margin-top:4px;display:none"></div></div>
 
 <button class="btn btn-success" onclick="generateDOCX()">📄 Generate & Download .docx</button>
 </div>
@@ -543,12 +544,35 @@ function buildKonklusiPrompt(){
   dataText+='\nRekomendasi Petugas Pengawas: '+(rekomendasi||'-')+'\n';
   dataText+='Overall Rating: '+rating+'\n';
 
+  let level=(document.getElementById('levelElaborasiSO')||{}).value||'standar';
+
   return 'Anda adalah asisten penyusun laporan audit/pengawasan internal berbahasa Indonesia yang formal. '
     +'Berdasarkan data Laporan Stock Opname berikut, tulis bagian "KONKLUSI" dengan format PERSIS seperti ini:\n'
-    +'1) Satu paragraf pembuka berisi 3-4 kalimat yang merangkum GARIS BESAR seluruh hasil di atas secara mengalir dan natural (cakup: periode, cakupan lokasi/pengawasan, kondisi umum di lapangan, dan gambaran temuan serta rating akhir) — bukan sekadar template, tulis seolah ringkasan naratif yang enak dibaca.\n'
-    +'2) Setelah paragraf pembuka, beri satu baris kosong, lalu tulis poin-poin (masing-masing diawali tanda "- ") yang merinci hal-hal penting secara ringkas dan padat, misalnya: kondisi tiap lokasi/hasil pengawasan yang menonjol, rincian temuan per tingkat risiko beserta implikasinya, status rekomendasi, dan simpulan rating akhir beserta arahan tindak lanjut. Buat poin secukupnya sesuai jumlah data yang tersedia (jangan mengada-ada jika datanya sedikit).\n'
+    +'1) Satu paragraf pembuka berisi 3-4 kalimat yang merangkum GARIS BESAR seluruh hasil di atas secara mengalir dan natural (cakup: periode, cakupan lokasi/pengawasan, kondisi umum di lapangan, dan gambaran temuan serta rating akhir). WAJIB sebutkan hal-hal SPESIFIK dari data (nama lokasi, angka jumlah temuan per tingkat risiko, dsb) — DILARANG menulis kalimat template kosong seperti "kegiatan telah berjalan dengan baik" tanpa merujuk data konkret di atas.\n'
+    +'2) Setelah paragraf pembuka, beri SATU baris kosong, lalu tulis poin-poin (masing-masing diawali tanda "- ") yang merinci hal-hal penting, misalnya: kondisi tiap lokasi/hasil pengawasan yang menonjol (sebut nama lokasinya), rincian temuan per tingkat risiko beserta implikasinya, status rekomendasi, dan simpulan rating akhir beserta arahan tindak lanjut. '
+    +elaborasiInstruksiSO(level)+' Buat poin secukupnya sesuai jumlah data yang tersedia (jangan mengada-ada jika datanya sedikit, minimal tetap buat 2 poin bila data memungkinkan).\n'
+    +'3) WAJIB: paragraf pembuka DAN poin-poin harus SAMA-SAMA ada dalam jawaban akhir — jangan berhenti menulis hanya setelah paragraf pembuka. Jangan memotong kalimat di tengah; pastikan jawaban selesai secara utuh.\n'
     +'Gunakan gaya bahasa laporan resmi instansi/perusahaan Indonesia. JANGAN gunakan markdown (tanpa **, tanpa heading, tanpa penomoran 1/2/3) — hanya teks paragraf biasa untuk pembuka dan baris "- " untuk poin-poin. '
     +'Jangan mengarang data yang tidak ada di bawah ini.\n\n'+dataText;
+}
+
+function elaborasiInstruksiSO(level){
+  if(level==='ringkas')return 'Gaya poin-poin: RINGKAS — tiap poin 1 kalimat pendek, langsung ke inti, tetap kalimat utuh (bukan potongan frasa).';
+  if(level==='detail')return 'Gaya poin-poin: DETAIL/NARATIF — tiap poin boleh 1-2 kalimat yang menjelaskan konteks pendukung (sejak kapan/kondisi apa) dan implikasi/dampaknya terhadap proses SO, tapi tetap hanya berdasar data di atas, jangan mengarang.';
+  return 'Gaya poin-poin: STANDAR — tiap poin ditulis sebagai kalimat lengkap dan deskriptif dengan konteks secukupnya, tidak terlalu telegram tapi juga tidak mengarang informasi baru.';
+}
+
+/* Cek struktur minimal: harus ada paragraf pembuka + minimal 1 baris poin "- ",
+   dan tidak terlihat terpotong di tengah kalimat (tidak diakhiri koneksi kata seperti "dan", "yang", "dengan", dst). */
+function validasiStrukturKonklusi(text){
+  if(!text)return false;
+  let blocks=parseKonklusiBlocks(text);
+  let adaParagraf=blocks.some(b=>b.type==='para'&&b.content.length>20);
+  let adaBullets=blocks.some(b=>b.type==='bullets'&&b.items.length>0);
+  let trimmed=text.trim();
+  let kataSambungAkhir=/(dan|yang|dengan|serta|namun|karena|untuk|pada|di|ke|atau|akan|telah|sudah)\s*$/i.test(trimmed);
+  let tandaBacaAkhir=/[.!?]$/.test(trimmed)||adaBullets; // kalau ada bullet, baris terakhir boleh tanpa titik
+  return adaParagraf&&adaBullets&&!kataSambungAkhir&&tandaBacaAkhir;
 }
 
 /* ---------- Pemanggil AI: timeout + retry cepat (pola sama dengan Generator Laporan Wawancara) ---------- */
@@ -576,7 +600,7 @@ async function callAIWithTimeout(workerUrl,promptText,timeoutMs=20000){
       }
       const text=(data&&data.text?data.text:'').trim();
       if(!text)throw new Error('AI tidak memberikan hasil apa pun.');
-      return text;
+      return {text,provider:(data&&data.provider)||'?',modelUsed:(data&&data.modelUsed)||'?'};
     }catch(err){
       clearTimeout(timer);
       if(err.name==='AbortError'){
@@ -595,6 +619,7 @@ async function callAIWithTimeout(workerUrl,promptText,timeoutMs=20000){
 async function generateKonklusiAI(){
   let btn=document.getElementById('btnAiKonklusi');
   let status=document.getElementById('aiKonklusiStatus');
+  let providerInfo=document.getElementById('aiKonklusiProvider');
   let workerUrl=HARDCODED_WORKER_URL;
   if(!workerUrl||workerUrl.indexOf('GANTI-DENGAN-URL-WORKER-ANDA')!==-1){
     alert('URL Worker belum dikonfigurasi.\n\nDeveloper: isi konstanta HARDCODED_WORKER_URL di dalam kode dengan URL Cloudflare Worker Anda (lihat file gemini-proxy-worker.js untuk cara deploy-nya).');
@@ -606,17 +631,37 @@ async function generateKonklusiAI(){
   }
   btn.disabled=true;btn.textContent='⏳ Memproses...';
   status.style.display='block';
+  providerInfo.style.display='none';
   try{
     let prompt=buildKonklusiPrompt();
-    let text=await callAIWithTimeout(workerUrl,prompt,20000);
-    if(!text){throw new Error('Worker tidak mengembalikan teks konklusi.')}
-    document.getElementById('konklusi').value=text;
+    let result=await callAIWithTimeout(workerUrl,prompt,25000);
+    let finalResult=result;
+
+    // Kalau strukturnya tidak lengkap (misal terpotong / tidak ada poin), coba sekali lagi
+    // dengan penekanan ekstra sebelum menyerah ke pengguna.
+    if(!validasiStrukturKonklusi(result.text)){
+      status.textContent='✨ Hasil pertama kurang lengkap, mencoba sekali lagi...';
+      try{
+        let promptKetat=prompt+'\n\nPENTING: Jawaban SEBELUMNYA terpotong/tidak lengkap. Kali ini WAJIB tulis paragraf pembuka LENGKAP diikuti baris kosong lalu MINIMAL 2 poin "- ", dan pastikan kalimat terakhir selesai dengan tanda titik.';
+        let retryResult=await callAIWithTimeout(workerUrl,promptKetat,25000);
+        if(validasiStrukturKonklusi(retryResult.text)){
+          finalResult=retryResult;
+        }
+        // kalau retry tetap tidak lengkap, tetap pakai hasil yang ada (lebih baik dari kosong) — user bisa edit manual
+      }catch(retryErr){
+        console.warn('Retry konklusi gagal, pakai hasil pertama:',retryErr);
+      }
+    }
+
+    document.getElementById('konklusi').value=finalResult.text;
+    providerInfo.textContent='ℹ️ Dihasilkan oleh: '+finalResult.provider+' ('+finalResult.modelUsed+')'+(finalResult.provider==='workers-ai'?' — model fallback, kualitas bisa lebih sederhana daripada Gemini. Klik lagi bila ingin coba ulang.':'');
+    providerInfo.style.display='block';
     renderPreview();
   }catch(err){
     console.error(err);
     alert('❌ Gagal generate konklusi lewat Worker.\n\nError: '+err.message+'\n\nCek kembali apakah Worker sudah di-deploy, secret GEMINI_API_KEY sudah diset, koneksi internet, dan kuota free tier Anda. Anda tetap bisa tulis konklusi secara manual.');
   }finally{
-    btn.disabled=false;btn.textContent='🤖 Generate dengan AI (Gemini)';
+    btn.disabled=false;btn.textContent='🤖 Generate dengan AI';
     status.style.display='none';
   }
 }
