@@ -120,9 +120,16 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 
 <hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
 <h3 style="color:#1a237e;font-size:14px;margin-bottom:12px">📝 Rekomendasi & Konklusi</h3>
-<div class="form-group"><label>Overall Rating</label><select id="overallRating" onchange="autoIsiKonklusi();renderPreview()"><option value="Memuaskan">Memuaskan</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Tidak Memuaskan">Tidak Memuaskan</option></select></div>
+<div class="form-group"><label>Overall Rating</label><select id="overallRating" onchange="renderPreview()"><option value="Memuaskan">Memuaskan</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Tidak Memuaskan">Tidak Memuaskan</option></select></div>
 <div class="form-group"><label>Rekomendasi Pengawas</label><textarea id="rekomendasi" rows="3" placeholder="Rekomendasi dari petugas pengawas..."></textarea></div>
-<div class="form-group"><label>Konklusi <button type="button" onclick="autoIsiKonklusi()" style="font-size:10px;padding:3px 8px;background:#1565c0;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🔄 Auto-isi</button></label><textarea id="konklusi" rows="3" placeholder="Klik 'Auto-isi' atau tulis manual..."></textarea></div>
+<div class="section-block" style="background:#e8f0fe">
+<h4>🌐 Cloudflare Worker (proxy Gemini)</h4>
+<div class="form-group" style="margin-bottom:8px"><label style="font-size:11px">URL Worker</label><input type="text" id="workerUrl" placeholder="https://gemini-proxy-worker.akun-anda.workers.dev"></div>
+<div style="display:flex;gap:8px"><button type="button" class="btn btn-secondary" style="margin-top:0" onclick="saveWorkerUrl()">💾 Simpan URL</button><button type="button" class="btn btn-secondary" style="margin-top:0;background:#c62828" onclick="clearWorkerUrl()">🗑️ Hapus URL</button></div>
+<div style="font-size:11px;color:#555;margin-top:8px">API key Gemini disimpan aman di Cloudflare Worker (secret di server), bukan di browser ini. Deploy Worker-nya lalu tempel URL-nya di sini.</div>
+</div>
+
+<div class="form-group"><label>Konklusi <button type="button" id="btnAiKonklusi" onclick="generateKonklusiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI (Gemini)</button></label><textarea id="konklusi" rows="8" placeholder="Isi URL Worker di atas, lalu klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiKonklusiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun konklusi dengan Gemini...</div></div>
 
 <button class="btn btn-success" onclick="generateDOCX()">📄 Generate & Download .docx</button>
 </div>
@@ -439,15 +446,170 @@ function getExecSummary(d){
   }
   return{p1,p2,rating,color,k,m,mn};
 }
+function joinWithDan(arr){
+  arr=arr.filter(Boolean);
+  if(arr.length===0)return'';
+  if(arr.length===1)return arr[0];
+  return arr.slice(0,-1).join(', ')+' dan '+arr[arr.length-1];
+}
 function getAutoKonklusi(){
   let rating=document.getElementById('overallRating').value;
-  let k=temuanList.filter(t=>t.risiko==='Kritis').length,m=temuanList.filter(t=>t.risiko==='Mayor').length,mn=temuanList.filter(t=>t.risiko==='Minor').length;
-  if(rating==='Tidak Memuaskan')return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini dinilai Tidak Memuaskan sehubungan dengan ditemukannya '+(k>0?k+' temuan berisiko Kritis':'temuan yang signifikan')+(m>0||mn>0?' serta catatan tambahan lainnya':'')+' yang memerlukan tindak lanjut segera dari pihak terkait.';
-  if(rating==='Perlu Perbaikan')return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini dinilai Perlu Perbaikan, dengan '+(m>0?m+' temuan berisiko Mayor':'beberapa catatan')+(mn>0?' serta '+mn+' temuan Minor':'')+' yang perlu ditindaklanjuti oleh unit terkait.';
-  if(mn>0)return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini dinilai Memuaskan, dengan '+mn+' catatan Minor sebagai bahan perbaikan berkelanjutan.';
-  return'Secara keseluruhan, pelaksanaan Stock Opname pada periode ini berjalan Memuaskan dan tidak ditemukan permasalahan signifikan.';
+  let periode=getPeriodeBulanValue();
+  let lokasiCount=lokasiList.length;
+  let pengawasCount=pengawasList.length;
+  let lokasiText=lokasiList.length>0?lokasiList.join(', '):null;
+
+  let k=temuanList.filter(t=>t.risiko==='Kritis').length;
+  let m=temuanList.filter(t=>t.risiko==='Mayor').length;
+  let mn=temuanList.filter(t=>t.risiko==='Minor').length;
+  let totalTemuan=k+m+mn;
+
+  let kondisiBaik=hasilPengawasanList.filter(p=>p.kondisi==='Baik').length;
+  let kondisiCukup=hasilPengawasanList.filter(p=>p.kondisi==='Cukup').length;
+  let kondisiKendala=hasilPengawasanList.filter(p=>p.kondisi==='Kendala').length;
+
+  /* Paragraf 1: ringkasan pelaksanaan */
+  let p1='Berdasarkan hasil pengawasan Stock Opname yang telah dilaksanakan pada periode '+periode
+    +(lokasiCount>0?' di '+lokasiCount+' lokasi gudang/depo yaitu '+lokasiText:' pada lokasi yang telah ditentukan')
+    +(pengawasCount>0?', dengan melibatkan '+pengawasCount+' petugas pengawas':'')
+    +', dapat disimpulkan bahwa pelaksanaan SO secara umum berjalan '
+    +(kondisiKendala>0?'dengan sejumlah kendala di beberapa lokasi':'sesuai dengan prosedur yang telah ditetapkan')+'.';
+
+  if(hasilPengawasanList.length>0){
+    let kondisiParts=[];
+    if(kondisiBaik>0)kondisiParts.push(kondisiBaik+' lokasi dengan kondisi Baik');
+    if(kondisiCukup>0)kondisiParts.push(kondisiCukup+' lokasi dengan kondisi Cukup');
+    if(kondisiKendala>0)kondisiParts.push(kondisiKendala+' lokasi mengalami Kendala di lapangan');
+    p1+=' Dari '+hasilPengawasanList.length+' laporan hasil pengawasan yang tercatat, terdiri dari '+joinWithDan(kondisiParts)+'.';
+  }
+
+  /* Paragraf 2: rekap temuan */
+  let p2;
+  if(totalTemuan===0){
+    p2='Selama proses pengawasan berlangsung, tidak ditemukan permasalahan atau penyimpangan yang signifikan yang dapat mempengaruhi keakuratan maupun keandalan hasil Stock Opname.';
+  }else{
+    let temuanParts=[];
+    if(k>0)temuanParts.push(k+' temuan berisiko Kritis');
+    if(m>0)temuanParts.push(m+' temuan berisiko Mayor');
+    if(mn>0)temuanParts.push(mn+' temuan berisiko Minor');
+    let main=getMainFinding();
+    p2='Selama proses pengawasan, teridentifikasi sebanyak '+totalTemuan+' temuan, terdiri dari '+joinWithDan(temuanParts)+'.'
+      +(main?' Temuan yang paling perlu mendapat perhatian adalah '+main.kondisi+'.':'')
+      +' Seluruh temuan tersebut memerlukan tindak lanjut dan perbaikan sesuai dengan tingkat risikonya masing-masing agar tidak berulang pada periode SO berikutnya.';
+  }
+
+  /* Paragraf 3: rating akhir & penutup */
+  let p3;
+  if(rating==='Tidak Memuaskan'){
+    p3='Dengan mempertimbangkan seluruh hasil pengawasan tersebut, pelaksanaan Stock Opname pada periode '+periode+' ini dinilai Tidak Memuaskan. Diperlukan tindakan perbaikan segera dan pengawasan yang lebih ketat pada periode SO berikutnya untuk memastikan seluruh temuan telah ditindaklanjuti secara tuntas.';
+  }else if(rating==='Perlu Perbaikan'){
+    p3='Dengan mempertimbangkan seluruh hasil pengawasan tersebut, pelaksanaan Stock Opname pada periode '+periode+' ini dinilai Perlu Perbaikan. Unit terkait diharapkan menindaklanjuti catatan-catatan yang ada agar pelaksanaan SO pada periode berikutnya dapat berjalan lebih baik dan lebih tertib.';
+  }else{
+    p3='Dengan mempertimbangkan seluruh hasil pengawasan tersebut, pelaksanaan Stock Opname pada periode '+periode+' ini dinilai Memuaskan'
+      +(totalTemuan>0?', meskipun masih terdapat sejumlah catatan minor yang perlu diperhatikan sebagai bahan perbaikan berkelanjutan':' dan telah berjalan sesuai dengan prosedur yang berlaku')+'.';
+  }
+
+  return p1+'\n\n'+p2+'\n\n'+p3;
 }
 function autoIsiKonklusi(){document.getElementById('konklusi').value=getAutoKonklusi();renderPreview()}
+
+/* ---------- Konklusi via AI (Claude) ---------- */
+function buildKonklusiPrompt(){
+  let periode=getPeriodeBulanValue();
+  let rating=document.getElementById('overallRating').value;
+  let rekomendasi=document.getElementById('rekomendasi').value.trim();
+  let k=temuanList.filter(t=>t.risiko==='Kritis').length;
+  let m=temuanList.filter(t=>t.risiko==='Mayor').length;
+  let mn=temuanList.filter(t=>t.risiko==='Minor').length;
+
+  let dataText='DATA LAPORAN STOCK OPNAME\n';
+  dataText+='Periode: '+periode+'\n';
+  dataText+='Lokasi Gudang/Depo: '+(lokasiList.length>0?lokasiList.join(', '):'-')+'\n';
+  dataText+='Petugas Pengawas: '+(pengawasList.length>0?pengawasList.map(p=>p.nama+(p.id?' ('+p.id+')':'')).join(', '):'-')+'\n\n';
+
+  dataText+='Hasil Pengawasan per Lokasi:\n';
+  if(hasilPengawasanList.length>0){
+    hasilPengawasanList.forEach((p,i)=>{
+      dataText+=(i+1)+'. '+p.lokasi+' ['+p.kondisi+']: '+p.hasil+'\n';
+    });
+  }else{
+    dataText+='(belum ada data)\n';
+  }
+
+  dataText+='\nTemuan/Findings (Kritis: '+k+', Mayor: '+m+', Minor: '+mn+'):\n';
+  if(temuanList.length>0){
+    temuanList.forEach(t=>{dataText+='- ['+t.risiko+'] '+t.kondisi+'\n'});
+  }else{
+    dataText+='(tidak ada temuan)\n';
+  }
+
+  dataText+='\nRekomendasi Petugas Pengawas: '+(rekomendasi||'-')+'\n';
+  dataText+='Overall Rating: '+rating+'\n';
+
+  return 'Anda adalah asisten penyusun laporan audit/pengawasan internal berbahasa Indonesia yang formal. '
+    +'Berdasarkan data Laporan Stock Opname berikut, tulis bagian "KONKLUSI" dengan format PERSIS seperti ini:\n'
+    +'1) Satu paragraf pembuka berisi 3-4 kalimat yang merangkum GARIS BESAR seluruh hasil di atas secara mengalir dan natural (cakup: periode, cakupan lokasi/pengawasan, kondisi umum di lapangan, dan gambaran temuan serta rating akhir) — bukan sekadar template, tulis seolah ringkasan naratif yang enak dibaca.\n'
+    +'2) Setelah paragraf pembuka, beri satu baris kosong, lalu tulis poin-poin (masing-masing diawali tanda "- ") yang merinci hal-hal penting secara ringkas dan padat, misalnya: kondisi tiap lokasi/hasil pengawasan yang menonjol, rincian temuan per tingkat risiko beserta implikasinya, status rekomendasi, dan simpulan rating akhir beserta arahan tindak lanjut. Buat poin secukupnya sesuai jumlah data yang tersedia (jangan mengada-ada jika datanya sedikit).\n'
+    +'Gunakan gaya bahasa laporan resmi instansi/perusahaan Indonesia. JANGAN gunakan markdown (tanpa **, tanpa heading, tanpa penomoran 1/2/3) — hanya teks paragraf biasa untuk pembuka dan baris "- " untuk poin-poin. '
+    +'Jangan mengarang data yang tidak ada di bawah ini.\n\n'+dataText;
+}
+
+/* ---------- Cloudflare Worker endpoint management ---------- */
+const WORKER_URL_STORAGE='so_worker_url';
+function saveWorkerUrl(){
+  let url=document.getElementById('workerUrl').value.trim();
+  if(!url){alert('Isi dulu URL Worker-nya sebelum disimpan.');return}
+  localStorage.setItem(WORKER_URL_STORAGE,url);
+  alert('✅ URL Worker tersimpan di browser ini.');
+}
+function clearWorkerUrl(){
+  localStorage.removeItem(WORKER_URL_STORAGE);
+  document.getElementById('workerUrl').value='';
+  alert('URL Worker dihapus dari browser ini.');
+}
+function loadWorkerUrl(){
+  let url=localStorage.getItem(WORKER_URL_STORAGE);
+  if(url)document.getElementById('workerUrl').value=url;
+}
+
+async function generateKonklusiAI(){
+  let btn=document.getElementById('btnAiKonklusi');
+  let status=document.getElementById('aiKonklusiStatus');
+  let workerUrl=document.getElementById('workerUrl').value.trim();
+  if(!workerUrl){
+    alert('Isi dulu URL Cloudflare Worker di bagian "🌐 Cloudflare Worker (proxy Gemini)" di atas.\n\nDeploy Worker-nya dulu (lihat file gemini-proxy-worker.js), baru tempel URL-nya di sini.');
+    return;
+  }
+  if(lokasiList.length===0&&hasilPengawasanList.length===0&&temuanList.length===0){
+    alert('Isi dulu minimal Lokasi, Hasil Pengawasan, atau Temuan sebelum generate konklusi dengan AI.');
+    return;
+  }
+  btn.disabled=true;btn.textContent='⏳ Memproses...';
+  status.style.display='block';
+  try{
+    let prompt=buildKonklusiPrompt();
+    let response=await fetch(workerUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt})
+    });
+    let data=null;
+    try{data=await response.json()}catch(e){}
+    if(!response.ok){
+      throw new Error((data&&data.error)?data.error:('Worker mengembalikan status '+response.status));
+    }
+    let text=data&&data.text?data.text.trim():'';
+    if(!text){throw new Error('Worker tidak mengembalikan teks konklusi.')}
+    document.getElementById('konklusi').value=text;
+    renderPreview();
+  }catch(err){
+    console.error(err);
+    alert('❌ Gagal generate konklusi lewat Worker.\n\nError: '+err.message+'\n\nCek kembali URL Worker, apakah sudah di-deploy, secret GEMINI_API_KEY sudah diset, koneksi internet, dan kuota free tier Anda. Anda tetap bisa tulis konklusi secara manual.');
+  }finally{
+    btn.disabled=false;btn.textContent='🤖 Generate dengan AI (Gemini)';
+    status.style.display='none';
+  }
+}
 
 function getData(){
   let p=document.getElementById('docPrefix').value||'SO',y=document.getElementById('docYear').value||'2026',s=parseInt(document.getElementById('docSequence').value)||1;
@@ -461,6 +623,18 @@ function getData(){
     konklusi:document.getElementById('konklusi').value||getAutoKonklusi(),
     docPrefix:p,docYear:y,docSequence:s,docNumber:fmtDoc(p,y,s)
   };
+}
+
+function parseKonklusiBlocks(text){
+  let blocks=(text||'').split(/\n\s*\n/).map(b=>b.trim()).filter(b=>b.length>0);
+  return blocks.map(b=>{
+    let lines=b.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    let bulletLines=lines.filter(l=>/^[-•]\s+/.test(l));
+    if(lines.length>0&&bulletLines.length===lines.length){
+      return{type:'bullets',items:lines.map(l=>l.replace(/^[-•]\s+/,''))};
+    }
+    return{type:'para',content:lines.join(' ')};
+  });
 }
 
 const PERNYATAAN_TEXT='Menyatakan bahwa proses pengawasan dilakukan secara independen, objektif, dan tanpa adanya konflik kepentingan dengan pihak mana pun. Seluruh informasi dan hasil pemeriksaan yang saya catat adalah benar, sesuai kondisi sebenarnya di lapangan, dan dapat dipertanggungjawabkan. Apabila di kemudian hari ditemukan ketidaksesuaian, saya bersedia memberikan klarifikasi sesuai ketentuan yang berlaku.';
@@ -510,6 +684,14 @@ function renderPreview(){
     ?'<div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:16px">'+pengawasList.map(p=>'<div style="text-align:center;min-width:170px;margin-bottom:16px"><br><br>_________________________<br><strong>'+p.nama+'</strong>'+(p.id?' ('+p.id+')':'')+'<br><span style="font-size:11px;color:#666">Petugas Pengawas</span></div>').join('')+'</div>'
     :'<p class="empty-msg">Belum ada petugas pengawas untuk tanda tangan.</p>';
 
+  let konklusiHtml=parseKonklusiBlocks(d.konklusi).map(blk=>{
+    if(blk.type==='bullets'){
+      return '<ul style="margin:0 0 10px 22px;padding:0">'+blk.items.map(it=>'<li style="margin-bottom:4px">'+it+'</li>').join('')+'</ul>';
+    }
+    return '<p style="margin:0 0 10px 0">'+blk.content+'</p>';
+  }).join('');
+  if(!konklusiHtml)konklusiHtml='<p style="margin:0">-</p>';
+
   let html='<div style="font-family:Segoe UI,sans-serif">'
     +'<div style="text-align:center;margin-bottom:16px">'+logo+'</div>'
     +'<div style="text-align:center;margin:8px 0 24px 0">'
@@ -531,7 +713,7 @@ function renderPreview(){
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">2. HASIL PENGAWASAN</div>'+hpHtml
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">3. TEMUAN / FINDINGS</div>'+temuanHtml
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">4. REKOMENDASI PENGAWAS</div><p style="margin:0">'+d.rekomendasi+'</p>'
-    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">5. KONKLUSI</div><p style="margin:0">'+d.konklusi+'</p>'
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">5. KONKLUSI</div>'+konklusiHtml
     +'<p style="margin:16px 0 0 0;font-weight:bold;color:#1a237e">Daftar Petugas Pengawas</p>'+pengawasNamesHtml
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">PERNYATAAN</div><p style="margin:0;font-style:italic">'+PERNYATAAN_TEXT+'</p>'
     +ttdHtml
@@ -632,9 +814,23 @@ async function generateDOCX(){
   children.push(new Paragraph({text:'4. REKOMENDASI PENGAWAS',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
   children.push(new Paragraph({text:d.rekomendasi,size:fontSize}));
 
-  // 5. Konklusi
+  // 5. Konklusi: paragraf pembuka + poin-poin (bullet)
   children.push(new Paragraph({text:'5. KONKLUSI',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
-  children.push(new Paragraph({text:d.konklusi,size:fontSize}));
+  let konklusiBlocks=parseKonklusiBlocks(d.konklusi);
+  if(konklusiBlocks.length===0){
+    children.push(new Paragraph({text:'-',size:fontSize}));
+  }else{
+    konklusiBlocks.forEach(blk=>{
+      if(blk.type==='bullets'){
+        blk.items.forEach(it=>{
+          children.push(new Paragraph({children:[new TextRun({text:'•  '+it,size:fontSize})],indent:{left:360},spacing:{after:80}}));
+        });
+        children.push(new Paragraph({spacing:{after:100}}));
+      }else{
+        children.push(new Paragraph({text:blk.content,size:fontSize,spacing:{after:150}}));
+      }
+    });
+  }
 
   // Daftar Petugas Pengawas (again, below konklusi)
   children.push(new Paragraph({children:[new TextRun({text:'Daftar Petugas Pengawas',bold:true,color:'1A237E',size:fontSize})],spacing:{before:300,after:100}}));
@@ -682,7 +878,7 @@ async function generateDOCX(){
 }
 
 ['jenisSO','tanggalSO','periodeBulanTahun','tanggalLaporan','overallRating','rekomendasi','konklusi','docPrefix','docYear','docSequence'].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener('input',renderPreview)});
-window.addEventListener('DOMContentLoaded',()=>{loadStoredSequence()});
+window.addEventListener('DOMContentLoaded',()=>{loadStoredSequence();loadWorkerUrl()});
 </script>
 </body>
 </html>
