@@ -139,6 +139,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <script>
 let lokasiList=[],pengawasList=[],hasilPengawasanList=[],temuanList=[],temuanCounter=1,editingIndex=-1;
 let logoDataUrl=null,logoArrayBuffer=null,logoMimeType=null;
+let konklusiSedangDiproses=false;
 
 /* ==== KONFIGURASI WORKER (edit URL di bawah ini sesuai Worker Anda) ==== */
 const HARDCODED_WORKER_URL='https://so-proxy.mnaufansidiq.workers.dev/';
@@ -632,6 +633,8 @@ async function generateKonklusiAI(){
   btn.disabled=true;btn.textContent='⏳ Memproses...';
   status.style.display='block';
   providerInfo.style.display='none';
+  konklusiSedangDiproses=true;
+  renderPreview();
   try{
     let prompt=buildKonklusiPrompt();
     let result=await callAIWithTimeout(workerUrl,prompt,20000);
@@ -650,6 +653,8 @@ async function generateKonklusiAI(){
   }finally{
     btn.disabled=false;btn.textContent='🤖 Generate dengan AI';
     status.style.display='none';
+    konklusiSedangDiproses=false;
+    renderPreview();
   }
 }
 
@@ -662,7 +667,9 @@ function getData(){
     tanggalLaporan:document.getElementById('tanggalLaporan').value,
     overallRating:document.getElementById('overallRating').value,
     rekomendasi:document.getElementById('rekomendasi').value||'-',
-    konklusi:document.getElementById('konklusi').value||getAutoKonklusi(),
+  konklusi:(konklusiSedangDiproses&&!document.getElementById('konklusi').value)
+    ?'⏳ AI sedang menyusun konklusi, mohon tunggu sebentar... (teks ini hanya tampilan sementara, belum tersimpan)'
+    :(document.getElementById('konklusi').value||getAutoKonklusi()),
     docPrefix:p,docYear:y,docSequence:s,docNumber:fmtDoc(p,y,s)
   };
 }
@@ -766,6 +773,10 @@ function renderPreview(){
 /* ---------- DOCX Generation ---------- */
 async function generateDOCX(){
  try{
+  if(konklusiSedangDiproses){
+    alert('⏳ AI masih menyusun Konklusi. Tunggu sampai proses selesai (tombol "Generate dengan AI" tidak lagi berputar) sebelum generate .docx, supaya teks yang tersimpan bukan teks placeholder sementara.');
+    return;
+  }
   let d=getData();
   let finalDocNumber=incSaveSeq();d.docNumber=finalDocNumber;
   let docxLib=(typeof docx!=='undefined')?docx:(window.docx||window.Docx||window.DOCX);
