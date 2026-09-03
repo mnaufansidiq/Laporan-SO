@@ -551,6 +551,47 @@ function buildKonklusiPrompt(){
     +'Jangan mengarang data yang tidak ada di bawah ini.\n\n'+dataText;
 }
 
+/* ---------- Pemanggil AI: timeout + retry cepat (pola sama dengan Generator Laporan Wawancara) ---------- */
+async function callAIWithTimeout(workerUrl,promptText,timeoutMs=20000){
+  let lastErr;
+  for(let attempt=1;attempt<=2;attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const response=await fetch(workerUrl,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({prompt:promptText}),
+        signal:controller.signal
+      });
+      clearTimeout(timer);
+      let data=null;
+      try{data=await response.json()}catch(e){}
+      if(!response.ok){
+        if(attempt===1&&(response.status===429||response.status>=500)){
+          await new Promise(r=>setTimeout(r,800));
+          continue;
+        }
+        throw new Error((data&&data.error)?data.error:('Worker mengembalikan status '+response.status));
+      }
+      const text=(data&&data.text?data.text:'').trim();
+      if(!text)throw new Error('AI tidak memberikan hasil apa pun.');
+      return text;
+    }catch(err){
+      clearTimeout(timer);
+      if(err.name==='AbortError'){
+        lastErr=new Error('Permintaan ke AI terlalu lama / tidak merespons (timeout '+(timeoutMs/1000)+' detik).');
+        if(attempt===1)continue;
+      }else{
+        lastErr=err;
+        if(attempt===1&&!err.message.startsWith('Worker')){continue}
+      }
+      break;
+    }
+  }
+  throw lastErr;
+}
+
 async function generateKonklusiAI(){
   let btn=document.getElementById('btnAiKonklusi');
   let status=document.getElementById('aiKonklusiStatus');
@@ -567,17 +608,7 @@ async function generateKonklusiAI(){
   status.style.display='block';
   try{
     let prompt=buildKonklusiPrompt();
-    let response=await fetch(workerUrl,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt})
-    });
-    let data=null;
-    try{data=await response.json()}catch(e){}
-    if(!response.ok){
-      throw new Error((data&&data.error)?data.error:('Worker mengembalikan status '+response.status));
-    }
-    let text=data&&data.text?data.text.trim():'';
+    let text=await callAIWithTimeout(workerUrl,prompt,20000);
     if(!text){throw new Error('Worker tidak mengembalikan teks konklusi.')}
     document.getElementById('konklusi').value=text;
     renderPreview();
