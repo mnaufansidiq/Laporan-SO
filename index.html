@@ -634,27 +634,14 @@ async function generateKonklusiAI(){
   providerInfo.style.display='none';
   try{
     let prompt=buildKonklusiPrompt();
-    let result=await callAIWithTimeout(workerUrl,prompt,25000);
-    let finalResult=result;
+    let result=await callAIWithTimeout(workerUrl,prompt,20000);
 
-    // Kalau strukturnya tidak lengkap (misal terpotong / tidak ada poin), coba sekali lagi
-    // dengan penekanan ekstra sebelum menyerah ke pengguna.
-    if(!validasiStrukturKonklusi(result.text)){
-      status.textContent='✨ Hasil pertama kurang lengkap, mencoba sekali lagi...';
-      try{
-        let promptKetat=prompt+'\n\nPENTING: Jawaban SEBELUMNYA terpotong/tidak lengkap. Kali ini WAJIB tulis paragraf pembuka LENGKAP diikuti baris kosong lalu MINIMAL 2 poin "- ", dan pastikan kalimat terakhir selesai dengan tanda titik.';
-        let retryResult=await callAIWithTimeout(workerUrl,promptKetat,25000);
-        if(validasiStrukturKonklusi(retryResult.text)){
-          finalResult=retryResult;
-        }
-        // kalau retry tetap tidak lengkap, tetap pakai hasil yang ada (lebih baik dari kosong) — user bisa edit manual
-      }catch(retryErr){
-        console.warn('Retry konklusi gagal, pakai hasil pertama:',retryErr);
-      }
-    }
-
-    document.getElementById('konklusi').value=finalResult.text;
-    providerInfo.textContent='ℹ️ Dihasilkan oleh: '+finalResult.provider+' ('+finalResult.modelUsed+')'+(finalResult.provider==='workers-ai'?' — model fallback, kualitas bisa lebih sederhana daripada Gemini. Klik lagi bila ingin coba ulang.':'');
+    document.getElementById('konklusi').value=result.text;
+    let strukturOk=validasiStrukturKonklusi(result.text);
+    let ket='ℹ️ Dihasilkan oleh: '+result.provider+' ('+result.modelUsed+')';
+    if(result.provider==='workers-ai')ket+=' — model fallback (Gemini sedang tidak tersedia).';
+    if(!strukturOk)ket+=' ⚠️ Hasil sepertinya kurang lengkap/terpotong — cek & edit manual, atau klik tombol AI sekali lagi.';
+    providerInfo.textContent=ket;
     providerInfo.style.display='block';
     renderPreview();
   }catch(err){
