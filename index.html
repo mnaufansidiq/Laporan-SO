@@ -126,9 +126,10 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
 <h3 style="color:#1a237e;font-size:14px;margin-bottom:12px">📝 Rekomendasi & Konklusi</h3>
 <div class="form-group"><label>Overall Rating</label><select id="overallRating" onchange="renderPreview()"><option value="Memuaskan">Memuaskan</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Tidak Memuaskan">Tidak Memuaskan</option></select></div>
-<div class="form-group"><label>Rekomendasi Pengawas</label><textarea id="rekomendasi" rows="3" placeholder="Rekomendasi dari petugas pengawas..."></textarea></div>
+<div class="form-group"><label>Level Elaborasi AI (Rekomendasi &amp; Konklusi)</label><select id="levelElaborasiSO"><option value="ringkas">Ringkas — kalimat singkat, langsung ke inti</option><option value="standar" selected>Standar — kalimat lengkap dengan konteks secukupnya</option><option value="detail">Detail — naratif, implikasi & tindak lanjut dijelaskan</option></select></div>
+<div class="form-group"><label>Rekomendasi Pengawas <button type="button" id="btnAiRekomendasi" onclick="generateRekomendasiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI</button></label><textarea id="rekomendasi" rows="5" placeholder="Klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiRekomendasiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun rekomendasi...</div><div id="aiRekomendasiProvider" style="font-size:11px;color:#888;margin-top:4px;display:none"></div></div>
 
-<div class="form-group"><label>Level Elaborasi Konklusi AI</label><select id="levelElaborasiSO"><option value="ringkas">Ringkas — kalimat singkat, langsung ke inti</option><option value="standar" selected>Standar — kalimat lengkap dengan konteks secukupnya</option><option value="detail">Detail — naratif, implikasi & tindak lanjut dijelaskan</option></select></div>
+
 <div class="form-group"><label>Konklusi <button type="button" id="btnAiKonklusi" onclick="generateKonklusiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI</button></label><textarea id="konklusi" rows="8" placeholder="Klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiKonklusiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun konklusi...</div><div id="aiKonklusiProvider" style="font-size:11px;color:#888;margin-top:4px;display:none"></div></div>
 
 <button class="btn btn-success" onclick="generateDOCX()">📄 Generate & Download .docx</button>
@@ -144,6 +145,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <script>
 let lokasiList=[],pengawasList=[],hasilPengawasanList=[],temuanList=[],temuanCounter=1,editingIndex=-1;
 let konklusiSedangDiproses=false;
+let rekomendasiSedangDiproses=false;
 
 /* ---------- Logo default (RS JIH) — tertanam di kode, tidak perlu upload ulang tiap buka halaman ---------- */
 const DEFAULT_LOGO_MIME='image/png';
@@ -622,6 +624,85 @@ function stripKonklusiHeader(text){
   return text.replace(/^\s*[#*\s]*\d*\.?\s*konklusi\s*[:.]?\s*[#*]*\s*\n+/i,'').trim();
 }
 
+function buildRekomendasiPrompt(){
+  let periode=getPeriodeBulanValue();
+  let rating=document.getElementById('overallRating').value;
+  let k=temuanList.filter(t=>t.risiko==='Kritis').length;
+  let m=temuanList.filter(t=>t.risiko==='Mayor').length;
+  let mn=temuanList.filter(t=>t.risiko==='Minor').length;
+
+  let dataText='DATA LAPORAN STOCK OPNAME\n';
+  dataText+='Jenis SO: '+document.getElementById('jenisSO').value+'\n';
+  dataText+='Periode: '+periode+'\n';
+  dataText+='Lokasi Gudang/Depo: '+(lokasiList.length>0?lokasiList.join(', '):'-')+'\n\n';
+  dataText+='Hasil Pengawasan per Lokasi:\n';
+  if(hasilPengawasanList.length>0){
+    hasilPengawasanList.forEach((p,i)=>{dataText+=(i+1)+'. '+p.lokasi+' ['+p.kondisi+']: '+p.hasil+'\n'});
+  }else{dataText+='(belum ada data)\n'}
+  dataText+='\nTemuan/Findings (Kritis: '+k+', Mayor: '+m+', Minor: '+mn+'):\n';
+  if(temuanList.length>0){
+    temuanList.forEach(t=>{dataText+='- ['+t.risiko+'] '+t.kondisi+'\n'});
+  }else{dataText+='(tidak ada temuan)\n'}
+  dataText+='\nOverall Rating: '+rating+'\n';
+
+  let level=(document.getElementById('levelElaborasiSO')||{}).value||'standar';
+
+  return 'Anda adalah asisten penyusun laporan audit/pengawasan internal berbahasa Indonesia yang formal. '
+    +'Berdasarkan data Laporan Stock Opname berikut, tulis ISI bagian REKOMENDASI PENGAWAS dengan format PERSIS seperti ini:\n'
+    +'0) JANGAN menuliskan kata "REKOMENDASI" atau judul/header apa pun di awal jawaban — langsung mulai dengan poin pertama. Judul bagian ini sudah otomatis ditambahkan oleh sistem.\n'
+    +'1) Tulis HANYA poin-poin rekomendasi tindak lanjut, masing-masing diawali tanda "- " dan satu poin per baris (tanpa paragraf pembuka). Tiap poin berupa saran/tindakan KONKRET yang harus dilakukan (apa yang diperbaiki, di lokasi mana, dan prioritasnya), bukan sekadar mengulang temuan.\n'
+    +'2) Urutkan dari prioritas tertinggi (temuan Kritis, lalu Mayor, lalu Minor). Jika ada hasil pengawasan dengan kondisi Kendala/Cukup, sertakan rekomendasi perbaikannya dengan menyebut nama lokasinya. Buat 3-6 poin sesuai banyaknya data (jangan mengada-ada jika datanya sedikit; jika tidak ada temuan, cukup rekomendasi menjaga dan mempertahankan kondisi yang baik).\n'
+    +'3) '+elaborasiInstruksiSO(level).replace('Gaya poin-poin','Gaya poin rekomendasi')+'\n'
+    +'4) WAJIB SPESIFIK merujuk data (nama lokasi, jumlah/tingkat risiko temuan). Jangan memotong kalimat di tengah; pastikan setiap poin selesai secara utuh.\n'
+    +'Gunakan gaya bahasa laporan resmi instansi/perusahaan Indonesia. JANGAN gunakan markdown (tanpa **, tanpa heading, tanpa penomoran 1/2/3) — hanya baris "- ". '
+    +'Jangan mengarang data yang tidak ada di bawah ini.\n\n'+dataText;
+}
+
+function stripRekomendasiHeader(text){
+  if(!text)return text;
+  return text.replace(/^\s*[#*\s]*\d*\.?\s*rekomendasi(\s+pengawas)?\s*[:.]?\s*[#*]*\s*\n+/i,'').trim();
+}
+
+async function generateRekomendasiAI(){
+  let btn=document.getElementById('btnAiRekomendasi');
+  let status=document.getElementById('aiRekomendasiStatus');
+  let providerInfo=document.getElementById('aiRekomendasiProvider');
+  let workerUrl=HARDCODED_WORKER_URL;
+  if(!workerUrl||workerUrl.indexOf('GANTI-DENGAN-URL-WORKER-ANDA')!==-1){
+    alert('URL Worker belum dikonfigurasi.\n\nDeveloper: isi konstanta HARDCODED_WORKER_URL di dalam kode dengan URL Cloudflare Worker Anda (lihat file gemini-proxy-worker.js untuk cara deploy-nya).');
+    return;
+  }
+  if(lokasiList.length===0&&hasilPengawasanList.length===0&&temuanList.length===0){
+    alert('Isi dulu minimal Lokasi, Hasil Pengawasan, atau Temuan sebelum generate rekomendasi dengan AI.');
+    return;
+  }
+  if(document.getElementById('rekomendasi').value.trim()&&!confirm('Kolom Rekomendasi sudah terisi. Timpa dengan hasil AI?')){return}
+  btn.disabled=true;btn.textContent='⏳ Memproses...';
+  status.style.display='block';
+  providerInfo.style.display='none';
+  rekomendasiSedangDiproses=true;
+  renderPreview();
+  try{
+    let prompt=buildRekomendasiPrompt();
+    let result=await callAIWithTimeout(workerUrl,prompt,22000);
+    result.text=stripRekomendasiHeader(result.text);
+    document.getElementById('rekomendasi').value=result.text;
+    let ket='ℹ️ Dihasilkan oleh: '+result.provider+' ('+result.modelUsed+')'+(result.elapsedMs?' — '+(result.elapsedMs/1000).toFixed(1)+' detik':'');
+    if(result.provider==='workers-ai')ket+=' — model fallback (Gemini sedang tidak tersedia).';
+    if(!/^[-•]\s+/m.test(result.text))ket+=' ⚠️ Format poin tidak terdeteksi — cek & edit manual, atau klik tombol AI sekali lagi.';
+    providerInfo.textContent=ket;
+    providerInfo.style.display='block';
+  }catch(err){
+    console.error(err);
+    alert('❌ Gagal generate rekomendasi lewat Worker.\n\nError: '+err.message+'\n\nAnda tetap bisa menulis rekomendasi secara manual.');
+  }finally{
+    btn.disabled=false;btn.textContent='🤖 Generate dengan AI';
+    status.style.display='none';
+    rekomendasiSedangDiproses=false;
+    renderPreview();
+  }
+}
+
 async function generateKonklusiAI(){
   let btn=document.getElementById('btnAiKonklusi');
   let status=document.getElementById('aiKonklusiStatus');
@@ -672,7 +753,9 @@ function getData(){
     periodeBulan:getPeriodeBulanValue(),
     tanggalLaporan:document.getElementById('tanggalLaporan').value,
     overallRating:document.getElementById('overallRating').value,
-    rekomendasi:document.getElementById('rekomendasi').value||'-',
+    rekomendasi:(rekomendasiSedangDiproses&&!document.getElementById('rekomendasi').value)
+      ?'⏳ AI sedang menyusun rekomendasi, mohon tunggu sebentar... (teks ini hanya tampilan sementara, belum tersimpan)'
+      :(document.getElementById('rekomendasi').value||'-'),
   konklusi:(konklusiSedangDiproses&&!document.getElementById('konklusi').value)
     ?'⏳ AI sedang menyusun konklusi, mohon tunggu sebentar... (teks ini hanya tampilan sementara, belum tersimpan)'
     :(document.getElementById('konklusi').value||getAutoKonklusi())
@@ -738,6 +821,13 @@ function renderPreview(){
     ?'<div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:16px">'+pengawasList.map(p=>'<div style="text-align:center;min-width:170px;margin-bottom:16px"><br><br>_________________________<br><strong>'+p.nama+'</strong>'+(p.id?' ('+p.id+')':'')+'<br><span style="font-size:11px;color:#666">Petugas Pengawas</span></div>').join('')+'</div>'
     :'<p class="empty-msg">Belum ada petugas pengawas untuk tanda tangan.</p>';
 
+  function blocksToHtml(text){return parseKonklusiBlocks(text).map(blk=>{
+    if(blk.type==='bullets'){
+      return '<ul style="margin:0 0 10px 22px;padding:0">'+blk.items.map(it=>'<li style="margin-bottom:4px">'+it+'</li>').join('')+'</ul>';
+    }
+    return '<p style="margin:0 0 10px 0">'+blk.content+'</p>';
+  }).join('')}
+  let rekomendasiHtml=blocksToHtml(d.rekomendasi)||'<p style="margin:0">-</p>';
   let konklusiHtml=parseKonklusiBlocks(d.konklusi).map(blk=>{
     if(blk.type==='bullets'){
       return '<ul style="margin:0 0 10px 22px;padding:0">'+blk.items.map(it=>'<li style="margin-bottom:4px">'+it+'</li>').join('')+'</ul>';
@@ -765,7 +855,7 @@ function renderPreview(){
     +'<p style="margin:0"><strong>Overall Rating:</strong> <span style="background:#fff9c4;color:'+summary.color+';padding:2px 8px;font-weight:bold">'+summary.rating+'</span></p>'
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">2. HASIL PENGAWASAN</div>'+hpHtml
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">3. TEMUAN / FINDINGS</div>'+temuanHtml
-    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">4. REKOMENDASI PENGAWAS</div><p style="margin:0">'+d.rekomendasi+'</p>'
+    +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">4. REKOMENDASI PENGAWAS</div>'+rekomendasiHtml
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">5. KONKLUSI</div>'+konklusiHtml
     +'<p style="margin:16px 0 0 0;font-weight:bold;color:#1a237e">Daftar Petugas Pengawas</p>'+pengawasNamesHtml
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">PERNYATAAN</div><p style="margin:0;font-style:italic">'+PERNYATAAN_TEXT+'</p>'
@@ -779,6 +869,10 @@ async function generateDOCX(){
  try{
   if(konklusiSedangDiproses){
     alert('⏳ AI masih menyusun Konklusi. Tunggu sampai proses selesai (tombol "Generate dengan AI" tidak lagi berputar) sebelum generate .docx, supaya teks yang tersimpan bukan teks placeholder sementara.');
+    return;
+  }
+  if(rekomendasiSedangDiproses){
+    alert('⏳ AI masih menyusun Rekomendasi. Tunggu sampai proses selesai sebelum generate .docx, supaya teks yang tersimpan bukan teks placeholder sementara.');
     return;
   }
   let d=getData();
@@ -867,7 +961,21 @@ async function generateDOCX(){
 
   // 4. Rekomendasi
   children.push(new Paragraph({text:'4. REKOMENDASI PENGAWAS',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
-  children.push(new Paragraph({text:d.rekomendasi,size:fontSize}));
+  let rekBlocks=parseKonklusiBlocks(d.rekomendasi);
+  if(rekBlocks.length===0){
+    children.push(new Paragraph({text:'-',size:fontSize}));
+  }else{
+    rekBlocks.forEach(blk=>{
+      if(blk.type==='bullets'){
+        blk.items.forEach(it=>{
+          children.push(new Paragraph({children:[new TextRun({text:'•  '+it,size:fontSize})],indent:{left:360},spacing:{after:80}}));
+        });
+        children.push(new Paragraph({spacing:{after:100}}));
+      }else{
+        children.push(new Paragraph({text:blk.content,size:fontSize,spacing:{after:150}}));
+      }
+    });
+  }
 
   // 5. Konklusi: paragraf pembuka + poin-poin (bullet)
   children.push(new Paragraph({text:'5. KONKLUSI',heading:HeadingLevel.HEADING_2,spacing:{before:400,after:100}}));
