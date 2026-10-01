@@ -88,7 +88,8 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <div class="form-group"><label>Ganti Logo (opsional — default sudah logo RS JIH)</label><input type="file" id="logoFile" accept="image/png,image/jpeg,image/jpg" onchange="handleLogoUpload(event)"><div id="logoPreviewContainer"><img src="" class="logo-preview" alt="Logo"></div><button type="button" class="btn btn-secondary" id="removeLogoBtn" onclick="resetLogoToDefault()">↩️ Kembali ke Logo Default</button></div>
 </div>
 
-<div class="form-row"><div class="form-group"><label>Jenis SO</label><select id="jenisSO"><option value="Monthly">Monthly</option><option value="Periodic">Periodic</option></select></div><div class="form-group"><label>Tanggal SO</label><input type="date" id="tanggalSO"></div></div>
+<div class="form-row"><div class="form-group"><label>Jenis SO</label><select id="jenisSO"><option value="Monthly">Monthly</option><option value="Periodic">Periodic</option></select></div><div class="form-group"><label id="lblTanggalSO">Tanggal SO (Dari)</label><input type="date" id="tanggalSO"></div></div>
+<div class="form-row" id="rowTanggalSOSampai"><div class="form-group"><label>Tanggal SO (Sampai Dengan)</label><input type="date" id="tanggalSOSampai"></div><div class="form-group"></div></div>
 <div class="form-row"><div class="form-group" style="position:relative"><label>Periode SO (Bulan & Tahun)</label><input type="text" id="periodeBulanTahun" placeholder="Pilih bulan & tahun" readonly style="cursor:pointer;background:white" onclick="toggleMonthPicker(event)"><div id="monthPickerPopup" class="month-picker-popup"></div></div><div class="form-group"><label>Tanggal Laporan</label><input type="date" id="tanggalLaporan"></div></div>
 
 <div class="section-block">
@@ -384,6 +385,19 @@ function renderDaftarTemuan(){
 }
 
 /* ---------- Helpers ---------- */
+function updateTanggalSOUI(){
+  let monthly=document.getElementById('jenisSO').value==='Monthly';
+  document.getElementById('rowTanggalSOSampai').style.display=monthly?'':'none';
+  document.getElementById('lblTanggalSO').textContent=monthly?'Tanggal SO (Dari)':'Tanggal SO';
+  let sampai=document.getElementById('tanggalSOSampai');
+  sampai.min=document.getElementById('tanggalSO').value||'';
+}
+function fmtTanggalSO(d){
+  if(d.jenisSO==='Monthly'&&d.tanggalSOSampai&&d.tanggalSOSampai!==d.tanggalSO){
+    return fmtTanggal(d.tanggalSO)+' s/d '+fmtTanggal(d.tanggalSOSampai);
+  }
+  return fmtTanggal(d.tanggalSO);
+}
 function fmtTanggal(iso){
   if(!iso)return'-';
   let bulan=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -654,6 +668,7 @@ function getData(){
   return{
     jenisSO:document.getElementById('jenisSO').value,
     tanggalSO:document.getElementById('tanggalSO').value,
+    tanggalSOSampai:(document.getElementById('jenisSO').value==='Monthly'?document.getElementById('tanggalSOSampai').value:''),
     periodeBulan:getPeriodeBulanValue(),
     tanggalLaporan:document.getElementById('tanggalLaporan').value,
     overallRating:document.getElementById('overallRating').value,
@@ -740,7 +755,7 @@ function renderPreview(){
     +'<hr style="border:none;border-top:1px solid #333;margin-bottom:24px">'
     +'<table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:16px">'
     +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;width:180px;font-weight:bold;color:#1a237e">Jenis SO</td><td style="padding:6px 0">: '+d.jenisSO+'</td></tr>'
-    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Tanggal SO</td><td style="padding:6px 0">: '+fmtTanggal(d.tanggalSO)+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Tanggal SO</td><td style="padding:6px 0">: '+fmtTanggalSO(d)+'</td></tr>'
     +'<tr style="border-bottom:1px solid #ddd"><td style="padding:6px 0;font-weight:bold;color:#1a237e">Tanggal Laporan</td><td style="padding:6px 0">: '+fmtTanggal(d.tanggalLaporan)+'</td></tr>'
     +'</table>'
     +'<p style="margin:0 0 6px 0;font-weight:bold;color:#1a237e">Lokasi Gudang / Depo</p>'+lokasiHtml
@@ -794,7 +809,7 @@ async function generateDOCX(){
   // Info table
   children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[
     new TableRow({children:[cc('Jenis SO',{bold:true,width:30}),cc(d.jenisSO,{width:70})]}),
-    new TableRow({children:[cc('Tanggal SO',{bold:true,width:30}),cc(fmtTanggal(d.tanggalSO),{width:70})]}),
+    new TableRow({children:[cc('Tanggal SO',{bold:true,width:30}),cc(fmtTanggalSO(d),{width:70})]}),
     new TableRow({children:[cc('Tanggal Laporan',{bold:true,width:30}),cc(fmtTanggal(d.tanggalLaporan),{width:70})]})
   ]}));
   children.push(new Paragraph({spacing:{before:200}}));
@@ -918,7 +933,9 @@ async function generateDOCX(){
  }
 }
 
-['jenisSO','tanggalSO','periodeBulanTahun','tanggalLaporan','overallRating','rekomendasi','konklusi'].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener('input',renderPreview)});
+['jenisSO','tanggalSO','tanggalSOSampai','periodeBulanTahun','tanggalLaporan','overallRating','rekomendasi','konklusi'].forEach(id=>{let el=document.getElementById(id);if(el){el.addEventListener('input',renderPreview);el.addEventListener('change',renderPreview)}});
+['jenisSO','tanggalSO'].forEach(id=>document.getElementById(id).addEventListener('change',updateTanggalSOUI));
+updateTanggalSOUI();
 
 /* ---------- Simpan / Muat Draft (localStorage) ---------- */
 const DRAFT_KEY='laporanSO_draft_v1';
@@ -933,6 +950,7 @@ function ambilDataFormSaatIni(){
   return {
     jenisSO:document.getElementById('jenisSO').value,
     tanggalSO:document.getElementById('tanggalSO').value,
+    tanggalSOSampai:document.getElementById('tanggalSOSampai').value,
     periodeBulanTahun:document.getElementById('periodeBulanTahun').value,
     mpSelectedMonth,mpSelectedYear,
     tanggalLaporan:document.getElementById('tanggalLaporan').value,
@@ -970,6 +988,8 @@ function jadwalkanAutoSave(){
 function muatDataKeForm(data){
   document.getElementById('jenisSO').value=data.jenisSO||'Monthly';
   document.getElementById('tanggalSO').value=data.tanggalSO||'';
+  document.getElementById('tanggalSOSampai').value=data.tanggalSOSampai||'';
+  updateTanggalSOUI();
   document.getElementById('tanggalLaporan').value=data.tanggalLaporan||'';
   document.getElementById('overallRating').value=data.overallRating||'Memuaskan';
   document.getElementById('rekomendasi').value=data.rekomendasi||'';
