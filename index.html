@@ -57,6 +57,21 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 .mp-months button{padding:8px 4px;border:1px solid #ddd;background:#f8f9fa;border-radius:6px;font-size:12px;cursor:pointer;color:#333}
 .mp-months button:hover{background:#e8eaf6;border-color:#1a237e}
 .mp-months button.selected{background:#1a237e;color:white;border-color:#1a237e;font-weight:700}
+.btn-eyd{font-size:10px;padding:3px 8px;background:#00897b;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px;font-weight:600}
+.btn-eyd:disabled{opacity:.6;cursor:wait}
+.btn-undo{font-size:10px;padding:3px 8px;background:#757575;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:4px;display:none}
+.eyd-status{font-size:11px;color:#00796b;margin-top:4px;display:none}
+.foto-item{display:flex;gap:12px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:10px;align-items:flex-start}
+.foto-item .no{background:#1a237e;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.foto-item img{width:110px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ccc;flex-shrink:0}
+.foto-item .body{flex:1;min-width:0}
+.foto-item textarea{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical}
+.foto-actions{display:flex;gap:6px;margin-top:6px}
+.foto-actions button{padding:4px 10px;font-size:11px;border:none;border-radius:4px;cursor:pointer;color:white;background:#1565c0}
+.foto-actions button.del{background:#c62828}
+.foto-actions button:disabled{opacity:.35;cursor:default}
+.upload-zone{border:2px dashed #9fa8da;background:#f5f6ff;border-radius:8px;padding:14px;text-align:center;font-size:12px;color:#555}
+@media(max-width:500px){.foto-item{flex-direction:column}.foto-item img{width:100%;height:160px}}
 </style>
 </head>
 <body>
@@ -109,7 +124,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <h3 style="color:#1565c0;font-size:14px;margin-bottom:12px">🔍 Hasil Pengawasan</h3>
 <div class="form-group"><label>Lokasi Gudang/Depo</label><input type="text" id="hpLokasi" placeholder="Gudang Farmasi"></div>
 <div class="form-row"><div class="form-group"><label>Tanggal</label><input type="date" id="hpTanggal"></div><div class="form-group"><label>Kondisi Lapangan</label><select id="hpKondisi"><option value="Baik">Baik</option><option value="Cukup">Cukup</option><option value="Kendala">Kendala</option></select></div></div>
-<div class="form-group"><label>Hasil Pengawasan</label><textarea id="hpHasil" rows="2" placeholder="Uraian hasil pengawasan di lokasi ini..."></textarea></div>
+<div class="form-group"><label>Hasil Pengawasan <button type="button" class="btn-eyd" id="btnEydHP" onclick="rapikanEYD('hpHasil','btnEydHP')">✨ Rapikan EYD (AI)</button><button type="button" class="btn-undo" id="btnEydHPUndo" onclick="urungkanEYD('hpHasil','btnEydHP')">↩️ Urungkan</button></label><textarea id="hpHasil" rows="3" placeholder="Uraian hasil pengawasan di lokasi ini..."></textarea><div class="eyd-status" id="btnEydHPStatus">✨ AI sedang merapikan teks sesuai EYD...</div></div>
 <button class="btn btn-primary" id="btnTambahHP" onclick="tambahHasilPengawasan()">➕ Tambah Hasil Pengawasan</button>
 <button class="btn btn-secondary" id="btnBatalEditHP" onclick="batalEditHasilPengawasan()" style="display:none">✖️ Batal Edit</button>
 <div id="daftarHasilPengawasan" style="margin-top:14px"></div>
@@ -118,7 +133,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <h3 style="color:#c62828;font-size:14px;margin-bottom:12px">⚠️ Temuan / Findings</h3>
 <p style="font-size:11px;color:#888;margin-bottom:10px;font-style:italic">Jika tidak ada temuan, cukup lewati bagian ini — laporan akan otomatis menyatakan tidak ada temuan signifikan. Tidak perlu membuat temuan rekaan.</p>
 <div class="form-row"><div class="form-group"><label>No. Temuan</label><input type="text" id="noTemuan" value="1" style="width:60px"></div><div class="form-group"><label>Tingkat Risiko</label><select id="risikoTemuan"><option value="Kritis">Kritis</option><option value="Mayor">Mayor</option><option value="Minor">Minor</option></select></div></div>
-<div class="form-group"><label>Kondisi</label><textarea id="kondisiTemuan" rows="2" placeholder="Uraian kondisi temuan..."></textarea></div>
+<div class="form-group"><label>Kondisi <button type="button" class="btn-eyd" id="btnEydTemuan" onclick="rapikanEYD('kondisiTemuan','btnEydTemuan')">✨ Rapikan EYD (AI)</button><button type="button" class="btn-undo" id="btnEydTemuanUndo" onclick="urungkanEYD('kondisiTemuan','btnEydTemuan')">↩️ Urungkan</button></label><textarea id="kondisiTemuan" rows="3" placeholder="Uraian kondisi temuan..."></textarea><div class="eyd-status" id="btnEydTemuanStatus">✨ AI sedang merapikan teks sesuai EYD...</div></div>
 <button class="btn btn-primary" id="btnTambahTemuan" onclick="tambahTemuan()">➕ Tambah Temuan</button>
 <button class="btn btn-secondary" id="btnBatalEdit" onclick="batalEditTemuan()" style="display:none">✖️ Batal Edit</button>
 <div id="daftarTemuan" style="margin-top:14px"></div>
@@ -131,6 +146,15 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 
 
 <div class="form-group"><label>Konklusi <button type="button" id="btnAiKonklusi" onclick="generateKonklusiAI()" style="font-size:10px;padding:3px 8px;background:#6a1b9a;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px">🤖 Generate dengan AI</button></label><textarea id="konklusi" rows="8" placeholder="Klik 'Generate dengan AI' — atau tulis manual..."></textarea><div id="aiKonklusiStatus" style="font-size:11px;color:#6a1b9a;margin-top:4px;display:none">✨ Sedang menyusun konklusi...</div><div id="aiKonklusiProvider" style="font-size:11px;color:#888;margin-top:4px;display:none"></div></div>
+
+<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
+<h3 style="color:#1a237e;font-size:14px;margin-bottom:12px">📎 Lampiran Foto</h3>
+<div class="upload-zone">
+  <input type="file" id="lampiranFile" accept="image/*" multiple onchange="handleLampiranUpload(event)" style="max-width:100%">
+  <div style="margin-top:6px">Bisa pilih lebih dari satu foto sekaligus. Foto otomatis dikompres agar ringan.</div>
+</div>
+<div id="lampiranStatus" style="font-size:11px;color:#1a237e;margin-top:6px;display:none"></div>
+<div id="daftarLampiran" style="margin-top:12px"></div>
 
 <button class="btn btn-success" onclick="generateDOCX()">📄 Generate & Download .docx</button>
 </div>
@@ -745,6 +769,122 @@ async function generateKonklusiAI(){
   }
 }
 
+/* ---------- Rapikan EYD dengan AI ---------- */
+const eydBackup={};
+function escapeHtml(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function buildEydPrompt(teks){
+  return 'Anda adalah editor bahasa Indonesia untuk laporan audit/pengawasan internal. '
+    +'Rapikan teks berikut agar sesuai Ejaan Yang Disempurnakan (EYD/PUEBI): perbaiki ejaan, kata baku, huruf kapital, tanda baca, imbuhan, dan susunan kalimat agar formal, jelas, dan enak dibaca.\n'
+    +'ATURAN WAJIB:\n'
+    +'1) JANGAN mengubah makna, JANGAN menambah fakta/angka/nama baru, JANGAN menghapus informasi penting.\n'
+    +'2) Pertahankan nama orang, nama lokasi, kode, angka, dan istilah teknis apa adanya.\n'
+    +'3) Jawab HANYA dengan teks hasil perbaikan — tanpa penjelasan, tanpa kata pengantar, tanpa tanda kutip pembuka/penutup, tanpa markdown.\n'
+    +'4) Pertahankan struktur: jika teks asli berupa beberapa baris/poin, tetap beberapa baris/poin.\n\n'
+    +'TEKS ASLI:\n'+teks;
+}
+function bersihkanHasilEyd(t){
+  t=(t||'').trim();
+  t=t.replace(/^```[a-z]*\n?/i,'').replace(/```$/,'').trim();
+  t=t.replace(/^(teks (hasil )?perbaikan|hasil perbaikan|hasil)\s*:\s*/i,'').trim();
+  if(/^["“].*["”]$/s.test(t))t=t.slice(1,-1).trim();
+  return t;
+}
+async function rapikanEYD(fieldId,btnId){
+  let el=document.getElementById(fieldId),btn=document.getElementById(btnId);
+  let undoBtn=document.getElementById(btnId+'Undo'),status=document.getElementById(btnId+'Status');
+  let teks=el.value.trim();
+  if(!teks){alert('Tulis dulu teksnya, baru dirapikan dengan AI.');return}
+  if(!HARDCODED_WORKER_URL||HARDCODED_WORKER_URL.indexOf('GANTI-DENGAN-URL-WORKER-ANDA')!==-1){alert('URL Worker belum dikonfigurasi.');return}
+  let label=btn.textContent;
+  btn.disabled=true;btn.textContent='⏳ Memproses...';status.style.display='block';
+  try{
+    let result=await callAIWithTimeout(HARDCODED_WORKER_URL,buildEydPrompt(teks),22000);
+    let hasil=bersihkanHasilEyd(result.text);
+    if(!hasil)throw new Error('AI tidak mengembalikan teks.');
+    eydBackup[fieldId]=el.value;
+    el.value=hasil;
+    undoBtn.style.display='inline-block';
+  }catch(err){
+    console.error(err);
+    alert('❌ Gagal merapikan teks lewat AI.\n\nError: '+err.message+'\n\nTeks Anda tidak diubah.');
+  }finally{
+    btn.disabled=false;btn.textContent=label;status.style.display='none';
+  }
+}
+function urungkanEYD(fieldId,btnId){
+  let el=document.getElementById(fieldId);
+  if(eydBackup[fieldId]!==undefined){el.value=eydBackup[fieldId];delete eydBackup[fieldId]}
+  document.getElementById(btnId+'Undo').style.display='none';
+}
+[['hpHasil','btnEydHP'],['kondisiTemuan','btnEydTemuan']].forEach(([f,b])=>{
+  document.getElementById(f).addEventListener('input',()=>{
+    // jika user mengetik manual setelah AI, tombol urungkan disembunyikan agar tidak menimpa ketikan
+    document.getElementById(b+'Undo').style.display='none';delete eydBackup[f];
+  });
+});
+
+/* ---------- Lampiran Foto ---------- */
+let lampiranList=[]; // {dataUrl,w,h,caption}
+function kompresFoto(file,maxSide=1280,quality=0.75){
+  return new Promise((resolve,reject)=>{
+    let reader=new FileReader();
+    reader.onerror=()=>reject(new Error('Gagal membaca file '+file.name));
+    reader.onload=e=>{
+      let img=new Image();
+      img.onerror=()=>reject(new Error(file.name+' bukan gambar yang valid'));
+      img.onload=()=>{
+        let w=img.naturalWidth,h=img.naturalHeight,r=Math.min(1,maxSide/Math.max(w,h));
+        let cw=Math.round(w*r),ch=Math.round(h*r);
+        let c=document.createElement('canvas');c.width=cw;c.height=ch;
+        let ctx=c.getContext('2d');
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);
+        ctx.drawImage(img,0,0,cw,ch);
+        resolve({dataUrl:c.toDataURL('image/jpeg',quality),w:cw,h:ch});
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function handleLampiranUpload(event){
+  let files=Array.from(event.target.files||[]);
+  if(!files.length)return;
+  let st=document.getElementById('lampiranStatus');
+  st.style.display='block';
+  let ok=0,gagal=[];
+  for(let i=0;i<files.length;i++){
+    st.textContent='⏳ Memproses foto '+(i+1)+' dari '+files.length+'...';
+    try{
+      let f=await kompresFoto(files[i]);
+      lampiranList.push({dataUrl:f.dataUrl,w:f.w,h:f.h,caption:''});ok++;
+    }catch(err){gagal.push(err.message)}
+  }
+  event.target.value='';
+  st.textContent='✅ '+ok+' foto ditambahkan.'+(gagal.length?' ⚠️ Gagal: '+gagal.join('; '):'');
+  renderDaftarLampiran();renderPreview();
+}
+function renderDaftarLampiran(){
+  let c=document.getElementById('daftarLampiran');
+  if(lampiranList.length===0){c.innerHTML='';return}
+  let h='<p style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">Daftar Lampiran ('+lampiranList.length+' foto):</p>';
+  lampiranList.forEach((f,i)=>{
+    h+='<div class="foto-item"><div class="no">'+(i+1)+'</div><img src="'+f.dataUrl+'" alt="Foto '+(i+1)+'">'
+      +'<div class="body"><textarea rows="3" placeholder="Keterangan foto '+(i+1)+'..." oninput="ubahKeteranganFoto('+i+',this.value)">'+escapeHtml(f.caption)+'</textarea>'
+      +'<div class="foto-actions"><button type="button" onclick="geserFoto('+i+',-1)"'+(i===0?' disabled':'')+'>⬆️</button><button type="button" onclick="geserFoto('+i+',1)"'+(i===lampiranList.length-1?' disabled':'')+'>⬇️</button><button type="button" class="del" onclick="hapusFoto('+i+')">🗑️ Hapus</button></div></div></div>';
+  });
+  c.innerHTML=h;
+}
+function ubahKeteranganFoto(i,v){lampiranList[i].caption=v;renderPreview()}
+function geserFoto(i,d){
+  let j=i+d;if(j<0||j>=lampiranList.length)return;
+  [lampiranList[i],lampiranList[j]]=[lampiranList[j],lampiranList[i]];
+  renderDaftarLampiran();renderPreview();
+}
+function hapusFoto(i){
+  if(!confirm('Hapus foto nomor '+(i+1)+'?'))return;
+  lampiranList.splice(i,1);renderDaftarLampiran();renderPreview();
+}
+
 function getData(){
   return{
     jenisSO:document.getElementById('jenisSO').value,
@@ -779,7 +919,7 @@ const PERNYATAAN_TEXT='Menyatakan bahwa proses pengawasan dilakukan secara indep
 /* ---------- Preview ---------- */
 function renderPreview(){
   let d=getData();
-  if(lokasiList.length===0&&mpSelectedMonth===null&&temuanList.length===0&&hasilPengawasanList.length===0){
+  if(lokasiList.length===0&&mpSelectedMonth===null&&temuanList.length===0&&hasilPengawasanList.length===0&&lampiranList.length===0){
     document.getElementById('previewContent').innerHTML='<p class="empty-msg">Preview akan muncul setelah Anda mengisi data.</p>';return;
   }
   let summary=getExecSummary(d);
@@ -836,6 +976,11 @@ function renderPreview(){
   }).join('');
   if(!konklusiHtml)konklusiHtml='<p style="margin:0">-</p>';
 
+  let lampiranHtml='';
+  if(lampiranList.length>0){
+    lampiranHtml='<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:28px 0 12px 0">LAMPIRAN FOTO</div>'
+      +lampiranList.map((f,i)=>'<div style="text-align:center;margin-bottom:18px;page-break-inside:avoid"><img src="'+f.dataUrl+'" style="max-width:100%;max-height:340px;border:1px solid #ccc" alt="Foto '+(i+1)+'"><div style="font-size:12px;margin-top:6px"><strong>Foto '+(i+1)+'.</strong> '+(f.caption.trim()?escapeHtml(f.caption).replace(/\n/g,'<br>'):'<span style="color:#999;font-style:italic">(tanpa keterangan)</span>')+'</div></div>').join('');
+  }
   let html='<div style="font-family:Segoe UI,sans-serif">'
     +'<div style="text-align:center;margin-bottom:16px">'+logo+'</div>'
     +'<div style="text-align:center;margin:8px 0 24px 0">'
@@ -860,6 +1005,7 @@ function renderPreview(){
     +'<p style="margin:16px 0 0 0;font-weight:bold;color:#1a237e">Daftar Petugas Pengawas</p>'+pengawasNamesHtml
     +'<div style="font-size:14px;font-weight:bold;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:4px;margin:20px 0 10px 0">PERNYATAAN</div><p style="margin:0;font-style:italic">'+PERNYATAAN_TEXT+'</p>'
     +ttdHtml
+    +lampiranHtml
     +'</div>';
   document.getElementById('previewContent').innerHTML=html;
 }
@@ -1029,6 +1175,18 @@ async function generateDOCX(){
     children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:{style:'none'},bottom:{style:'none'},left:{style:'none'},right:{style:'none'},insideHorizontal:{style:'none'},insideVertical:{style:'none'}},rows}));
   }
 
+  // Lampiran Foto (halaman baru, foto + keterangan bernomor)
+  if(lampiranList.length>0){
+    children.push(new Paragraph({text:'LAMPIRAN FOTO',heading:HeadingLevel.HEADING_2,pageBreakBefore:true,spacing:{after:200}}));
+    lampiranList.forEach((f,i)=>{
+      let maxW=450,maxH=330,r=Math.min(maxW/f.w,maxH/f.h,1);
+      let tw=Math.round(f.w*r),th=Math.round(f.h*r);
+      children.push(new Paragraph({children:[new ImageRun({type:'jpg',data:dataUrlToArrayBuffer(f.dataUrl),transformation:{width:tw,height:th}})],alignment:AlignmentType.CENTER,keepNext:true,spacing:{before:200,after:80}}));
+      let cap=(f.caption||'').trim()||'(tanpa keterangan)';
+      children.push(new Paragraph({children:[new TextRun({text:'Foto '+(i+1)+'. ',bold:true,size:20}),new TextRun({text:cap,size:20})],alignment:AlignmentType.CENTER,spacing:{after:300}}));
+    });
+  }
+
   let doc=new Document({sections:[{properties:{page:{margin:{top:convertInchesToTwip(1),bottom:convertInchesToTwip(1),left:convertInchesToTwip(1),right:convertInchesToTwip(1)}}},children:children}]});
   let blob=await Packer.toBlob(doc);
   let periodeSlug=(d.periodeBulan||'Tanpa_Periode').replace(/\s+/g,'_');
@@ -1065,7 +1223,7 @@ function ambilDataFormSaatIni(){
     overallRating:document.getElementById('overallRating').value,
     rekomendasi:document.getElementById('rekomendasi').value,
     konklusi:document.getElementById('konklusi').value,
-    lokasiList,pengawasList,hasilPengawasanList,temuanList,temuanCounter,
+    lokasiList,pengawasList,hasilPengawasanList,temuanList,temuanCounter,lampiranList,
     logoDataUrl:(logoDataUrl!==DEFAULT_LOGO_DATA_URL?logoDataUrl:null),
     logoMimeType:(logoDataUrl!==DEFAULT_LOGO_DATA_URL?logoMimeType:null),
     savedAt:new Date().toISOString()
@@ -1084,7 +1242,8 @@ function simpanDraft(manual){
     document.getElementById('statusSimpan').textContent=(manual?'✅ Draft disimpan':'Tersimpan otomatis')+' — '+fmtWaktu(data.savedAt);
   }catch(err){
     console.error(err);
-    if(manual)alert('❌ Gagal menyimpan draft di perangkat ini.\n\n'+err.message);
+    document.getElementById('statusSimpan').textContent='⚠️ Draft tidak tersimpan (penyimpanan browser penuh — kurangi jumlah foto lampiran).';
+    if(manual)alert('❌ Gagal menyimpan draft di perangkat ini.\n\n'+err.message+'\n\nKemungkinan karena foto lampiran terlalu banyak.');
   }
 }
 
@@ -1112,6 +1271,7 @@ function muatDataKeForm(data){
   hasilPengawasanList=data.hasilPengawasanList||[];
   temuanList=data.temuanList||[];
   temuanCounter=data.temuanCounter||1;
+  lampiranList=data.lampiranList||[];
 
   if(data.logoDataUrl){
     logoDataUrl=data.logoDataUrl;
@@ -1122,7 +1282,7 @@ function muatDataKeForm(data){
   }
 
   renderLogoPreview();
-  renderDaftarLokasi();renderDaftarPengawas();renderDaftarHasilPengawasan();renderDaftarTemuan();
+  renderDaftarLokasi();renderDaftarPengawas();renderDaftarHasilPengawasan();renderDaftarTemuan();renderDaftarLampiran();
   renderPreview();
 }
 
