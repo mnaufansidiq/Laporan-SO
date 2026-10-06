@@ -60,6 +60,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 .btn-eyd{font-size:10px;padding:3px 8px;background:#00897b;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:6px;font-weight:600}
 .btn-eyd:disabled{opacity:.6;cursor:wait}
 .btn-undo{font-size:10px;padding:3px 8px;background:#757575;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:4px;display:none}
+.eyd-mode{font-size:11px;padding:3px 4px;border:1px solid #80cbc4;border-radius:4px;margin-left:6px;font-weight:400;color:#00695c;background:#e0f2f1;width:auto!important}
 .eyd-status{font-size:11px;color:#00796b;margin-top:4px;display:none}
 .foto-item{display:flex;gap:12px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:10px;align-items:flex-start}
 .foto-item .no{background:#1a237e;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
@@ -124,7 +125,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <h3 style="color:#1565c0;font-size:14px;margin-bottom:12px">🔍 Hasil Pengawasan</h3>
 <div class="form-group"><label>Lokasi Gudang/Depo</label><input type="text" id="hpLokasi" placeholder="Gudang Farmasi"></div>
 <div class="form-row"><div class="form-group"><label>Tanggal</label><input type="date" id="hpTanggal"></div><div class="form-group"><label>Kondisi Lapangan</label><select id="hpKondisi"><option value="Baik">Baik</option><option value="Cukup">Cukup</option><option value="Kendala">Kendala</option></select></div></div>
-<div class="form-group"><label>Hasil Pengawasan <button type="button" class="btn-eyd" id="btnEydHP" onclick="rapikanEYD('hpHasil','btnEydHP')">✨ Rapikan EYD (AI)</button><button type="button" class="btn-undo" id="btnEydHPUndo" onclick="urungkanEYD('hpHasil','btnEydHP')">↩️ Urungkan</button></label><textarea id="hpHasil" rows="3" placeholder="Uraian hasil pengawasan di lokasi ini..."></textarea><div class="eyd-status" id="btnEydHPStatus">✨ AI sedang merapikan teks sesuai EYD...</div></div>
+<div class="form-group"><label>Hasil Pengawasan <select class="eyd-mode" id="btnEydHPMode" title="Tingkat elaborasi AI"><option value="eyd">Rapikan EYD saja</option><option value="standar">EYD + Elaborasi standar</option><option value="detail">EYD + Elaborasi detail</option></select><button type="button" class="btn-eyd" id="btnEydHP" onclick="rapikanEYD('hpHasil','btnEydHP')">✨ Rapikan / Elaborasi (AI)</button><button type="button" class="btn-undo" id="btnEydHPUndo" onclick="urungkanEYD('hpHasil','btnEydHP')">↩️ Urungkan</button></label><textarea id="hpHasil" rows="3" placeholder="Uraian hasil pengawasan di lokasi ini..."></textarea><div class="eyd-status" id="btnEydHPStatus">✨ AI sedang merapikan teks sesuai EYD...</div></div>
 <button class="btn btn-primary" id="btnTambahHP" onclick="tambahHasilPengawasan()">➕ Tambah Hasil Pengawasan</button>
 <button class="btn btn-secondary" id="btnBatalEditHP" onclick="batalEditHasilPengawasan()" style="display:none">✖️ Batal Edit</button>
 <div id="daftarHasilPengawasan" style="margin-top:14px"></div>
@@ -133,7 +134,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <h3 style="color:#c62828;font-size:14px;margin-bottom:12px">⚠️ Temuan / Findings</h3>
 <p style="font-size:11px;color:#888;margin-bottom:10px;font-style:italic">Jika tidak ada temuan, cukup lewati bagian ini — laporan akan otomatis menyatakan tidak ada temuan signifikan. Tidak perlu membuat temuan rekaan.</p>
 <div class="form-row"><div class="form-group"><label>No. Temuan</label><input type="text" id="noTemuan" value="1" style="width:60px"></div><div class="form-group"><label>Tingkat Risiko</label><select id="risikoTemuan"><option value="Kritis">Kritis</option><option value="Mayor">Mayor</option><option value="Minor">Minor</option></select></div></div>
-<div class="form-group"><label>Kondisi <button type="button" class="btn-eyd" id="btnEydTemuan" onclick="rapikanEYD('kondisiTemuan','btnEydTemuan')">✨ Rapikan EYD (AI)</button><button type="button" class="btn-undo" id="btnEydTemuanUndo" onclick="urungkanEYD('kondisiTemuan','btnEydTemuan')">↩️ Urungkan</button></label><textarea id="kondisiTemuan" rows="3" placeholder="Uraian kondisi temuan..."></textarea><div class="eyd-status" id="btnEydTemuanStatus">✨ AI sedang merapikan teks sesuai EYD...</div></div>
+<div class="form-group"><label>Kondisi <select class="eyd-mode" id="btnEydTemuanMode" title="Tingkat elaborasi AI"><option value="eyd">Rapikan EYD saja</option><option value="standar">EYD + Elaborasi standar</option><option value="detail">EYD + Elaborasi detail</option></select><button type="button" class="btn-eyd" id="btnEydTemuan" onclick="rapikanEYD('kondisiTemuan','btnEydTemuan')">✨ Rapikan / Elaborasi (AI)</button><button type="button" class="btn-undo" id="btnEydTemuanUndo" onclick="urungkanEYD('kondisiTemuan','btnEydTemuan')">↩️ Urungkan</button></label><textarea id="kondisiTemuan" rows="3" placeholder="Uraian kondisi temuan..."></textarea><div class="eyd-status" id="btnEydTemuanStatus">✨ AI sedang merapikan teks sesuai EYD...</div></div>
 <button class="btn btn-primary" id="btnTambahTemuan" onclick="tambahTemuan()">➕ Tambah Temuan</button>
 <button class="btn btn-secondary" id="btnBatalEdit" onclick="batalEditTemuan()" style="display:none">✖️ Batal Edit</button>
 <div id="daftarTemuan" style="margin-top:14px"></div>
@@ -772,15 +773,26 @@ async function generateKonklusiAI(){
 /* ---------- Rapikan EYD dengan AI ---------- */
 const eydBackup={};
 function escapeHtml(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function buildEydPrompt(teks){
-  return 'Anda adalah editor bahasa Indonesia untuk laporan audit/pengawasan internal. '
-    +'Rapikan teks berikut agar sesuai Ejaan Yang Disempurnakan (EYD/PUEBI): perbaiki ejaan, kata baku, huruf kapital, tanda baca, imbuhan, dan susunan kalimat agar formal, jelas, dan enak dibaca.\n'
-    +'ATURAN WAJIB:\n'
-    +'1) JANGAN mengubah makna, JANGAN menambah fakta/angka/nama baru, JANGAN menghapus informasi penting.\n'
+function buildEydPrompt(teks,mode,konteks){
+  let p='Anda adalah editor bahasa Indonesia untuk laporan audit/pengawasan internal Stock Opname. ';
+  if(mode==='eyd'){
+    p+='Rapikan teks berikut agar sesuai Ejaan Yang Disempurnakan (EYD/PUEBI): perbaiki ejaan, kata baku, huruf kapital, tanda baca, imbuhan, dan susunan kalimat agar formal, jelas, dan enak dibaca. Panjang teks boleh tetap sama seperti aslinya.\n';
+  }else{
+    p+='Rapikan teks berikut sesuai EYD/PUEBI DAN kembangkan (elaborasi) menjadi uraian laporan yang lebih lengkap, formal, dan mengalir.\n';
+    if(mode==='detail'){
+      p+='TINGKAT ELABORASI: DETAIL — tulis 1-2 paragraf naratif. Uraikan apa yang diamati, kondisi pelaksanaannya, serta implikasi/dampak umum terhadap akurasi, ketertiban, dan keandalan proses SO. Boleh menambahkan kalimat penutup berupa perlunya perhatian/tindak lanjut secara umum.\n';
+    }else{
+      p+='TINGKAT ELABORASI: STANDAR — tulis 3-5 kalimat lengkap. Jelaskan hal yang diamati dengan konteks secukupnya dan, bila relevan, dampak umumnya terhadap proses SO.\n';
+    }
+    p+='BATAS ELABORASI: kembangkan hanya dari makna yang ADA pada teks asli. Dilarang mengarang angka, jumlah, nama orang, nama barang, tanggal, lokasi, atau penyebab spesifik yang tidak disebut dalam teks. Penjelasan dampak/implikasi harus bersifat umum dan wajar, bukan klaim fakta baru.\n';
+  }
+  p+='ATURAN WAJIB:\n'
+    +'1) JANGAN mengubah makna asli dan JANGAN menghapus informasi penting.\n'
     +'2) Pertahankan nama orang, nama lokasi, kode, angka, dan istilah teknis apa adanya.\n'
-    +'3) Jawab HANYA dengan teks hasil perbaikan — tanpa penjelasan, tanpa kata pengantar, tanpa tanda kutip pembuka/penutup, tanpa markdown.\n'
-    +'4) Pertahankan struktur: jika teks asli berupa beberapa baris/poin, tetap beberapa baris/poin.\n\n'
-    +'TEKS ASLI:\n'+teks;
+    +'3) Jawab HANYA dengan teks hasil akhir — tanpa penjelasan, tanpa kata pengantar, tanpa tanda kutip pembuka/penutup, tanpa markdown (tanpa **, tanpa heading, tanpa poin bernomor). Boleh pakai paragraf biasa.\n';
+  if(mode==='eyd')p+='4) Pertahankan struktur: jika teks asli berupa beberapa baris/poin, tetap beberapa baris/poin.\n';
+  if(konteks)p+='\nKONTEKS (hanya untuk memahami situasi, JANGAN disalin ke hasil): '+konteks+'\n';
+  return p+'\nTEKS ASLI:\n'+teks;
 }
 function bersihkanHasilEyd(t){
   t=(t||'').trim();
@@ -796,9 +808,13 @@ async function rapikanEYD(fieldId,btnId){
   if(!teks){alert('Tulis dulu teksnya, baru dirapikan dengan AI.');return}
   if(!HARDCODED_WORKER_URL||HARDCODED_WORKER_URL.indexOf('GANTI-DENGAN-URL-WORKER-ANDA')!==-1){alert('URL Worker belum dikonfigurasi.');return}
   let label=btn.textContent;
-  btn.disabled=true;btn.textContent='⏳ Memproses...';status.style.display='block';
+  let mode=document.getElementById(btnId+'Mode').value;
+  let konteks=(fieldId==='hpHasil')
+    ?('Hasil pengawasan di lokasi '+(document.getElementById('hpLokasi').value.trim()||'-')+', kondisi lapangan: '+document.getElementById('hpKondisi').value)
+    :('Temuan tingkat risiko '+document.getElementById('risikoTemuan').value);
+  btn.disabled=true;btn.textContent='⏳ Memproses...';status.textContent=(mode==='eyd'?'✨ AI sedang merapikan teks sesuai EYD...':'✨ AI sedang merapikan dan mengelaborasi teks...');status.style.display='block';
   try{
-    let result=await callAIWithTimeout(HARDCODED_WORKER_URL,buildEydPrompt(teks),22000);
+    let result=await callAIWithTimeout(HARDCODED_WORKER_URL,buildEydPrompt(teks,mode,konteks),mode==='eyd'?22000:30000);
     let hasil=bersihkanHasilEyd(result.text);
     if(!hasil)throw new Error('AI tidak mengembalikan teks.');
     eydBackup[fieldId]=el.value;
@@ -806,7 +822,7 @@ async function rapikanEYD(fieldId,btnId){
     undoBtn.style.display='inline-block';
   }catch(err){
     console.error(err);
-    alert('❌ Gagal merapikan teks lewat AI.\n\nError: '+err.message+'\n\nTeks Anda tidak diubah.');
+    alert('❌ Gagal memproses teks lewat AI.\n\nError: '+err.message+'\n\nTeks Anda tidak diubah.');
   }finally{
     btn.disabled=false;btn.textContent=label;status.style.display='none';
   }
